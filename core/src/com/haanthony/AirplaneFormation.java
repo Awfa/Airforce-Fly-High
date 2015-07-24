@@ -6,27 +6,18 @@ import java.util.Set;
 
 import com.haanthony.Game.GameColor;
 
-public class AirplaneFormation implements Iterable<Airplane> {
+public class AirplaneFormation {
 	private GameColor color;
-	private Set<Airplane> airplanes;
+	private int airplanes;
 	private boolean disbanded;
 	
 	public AirplaneFormation(GameColor color) {
-		airplanes = new HashSet<Airplane>();
 		this.color = color;
 		disbanded = false;
 	}
 	
-	public void addPlane(Airplane plane) {
-		if (airplanes == null) {
-			throw new NullPointerException();
-		}
-		
-		if (airplanes.contains(plane)) {
-			throw new IllegalArgumentException("This plane is already in the formation.");
-		}
-		
-		airplanes.add(plane);
+	public void addPlane() {
+		airplanes++;
 	}
 	
 	public void combineWithOtherFormation(AirplaneFormation otherFormation) {
@@ -38,13 +29,13 @@ public class AirplaneFormation implements Iterable<Airplane> {
 			throw new IllegalArgumentException("Cannot combine the same formations");
 		}
 		
-		otherFormation.airplanes.addAll(airplanes);
+		otherFormation.airplanes += airplanes;
 		disband();
 	}
 	
 	public void disband() {
 		disbanded = true;
-		airplanes = null;
+		airplanes = 0;
 	}
 	
 	public boolean isDisbanded() {
@@ -52,19 +43,8 @@ public class AirplaneFormation implements Iterable<Airplane> {
 	}
 	
 	public int getSize() {
-		if (disbanded) {
-			return 0;
-		}
-		return airplanes.size();
+		return airplanes;
 	}
 	
 	public GameColor getColor() { return color; }
-
-	@Override
-	public Iterator<Airplane> iterator() {
-		if (disbanded) {
-			throw new IllegalStateException("Cannot iterate over a disbanded formation");
-		}
-		return airplanes.iterator();
-	}
 }

@@ -268,8 +268,8 @@ public class Game {
 		
 		System.out.println("Putting yellow 2 stacked formation in the way at position 3...");
 		AirplaneFormation yellowFormation = new AirplaneFormation(GameColor.YELLOW);
-		yellowFormation.addPlane(new Airplane());
-		yellowFormation.addPlane(new Airplane());
+		yellowFormation.addPlane();
+		yellowFormation.addPlane();
 		game.board.addFormation(yellowFormation, 3);
 		
 		game.generateChoices(GameColor.BLUE, 6);
@@ -283,9 +283,9 @@ public class Game {
 		
 		System.out.println("Putting green 3 stacked formation in the way of the yellow slide at position 60...");
 		AirplaneFormation greenFormation = new AirplaneFormation(GameColor.GREEN);
-		greenFormation.addPlane(new Airplane());
-		greenFormation.addPlane(new Airplane());
-		greenFormation.addPlane(new Airplane());
+		greenFormation.addPlane();
+		greenFormation.addPlane();
+		greenFormation.addPlane();
 		game.board.addFormation(greenFormation, 60);
 		
 		game.generateChoices(GameColor.GREEN, 3);
@@ -307,22 +307,22 @@ public class Game {
 		
 		System.out.println("Putting a blue plane formation of size 1 at position 47 (exit is in 5 spaces)");
 		AirplaneFormation blueFormation = new AirplaneFormation(GameColor.BLUE);
-		blueFormation.addPlane(new Airplane());
+		blueFormation.addPlane();
 		game.board.addFormation(blueFormation, 47);
 		
 		game.generateChoices(GameColor.BLUE, 6);
 		
 		System.out.println("Putting red 2 stacked formation at red home...");
 		AirplaneFormation redFormation = new AirplaneFormation(GameColor.RED);
-		redFormation.addPlane(new Airplane());
-		redFormation.addPlane(new Airplane());
+		redFormation.addPlane();
+		redFormation.addPlane();
 		game.board.addFormation(redFormation, GameColor.RED.getHome());
 		
 		game.generateChoices(GameColor.RED, 6);
 		
 		System.out.println("Adding 2 more planes to red home...");
-		redFormation.addPlane(new Airplane());
-		redFormation.addPlane(new Airplane());
+		redFormation.addPlane();
+		redFormation.addPlane();
 		
 		game.generateChoices(GameColor.RED, 6);
 		
