@@ -1,7 +1,11 @@
 package com.haanthony;
 
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
+import com.haanthony.Choice.ChoiceType;
 
 // The Game class is the class that upholds the rules of Air Force Fly High
 // It manages the game logic such as how pieces move.
@@ -80,15 +84,6 @@ public class Game {
 		private boolean inHomeStretch(int point) {
 			return point >= exitDest && point <= home;
 		}
-		
-/*		private static int getJumpPoint(int point) {
-			verifyPointInbounds(point);
-			if (point < BOARD_MAIN_ROUTE_END) {
-				point = (point + 4) % BOARD_MAIN_ROUTE_END;
-			}
-			
-			return point;
-		}*/
 	}
 	
 	private static final int GAME_BOARD_SIZE = 76;
@@ -109,12 +104,15 @@ public class Game {
 	}
 	
 	// This method generates the available choices for a color given the dice roll
-	private final void generateChoices(GameColor color, int diceRoll) {
+	private final Set<Choice> generateChoices(GameColor color, int diceRoll) {
 		System.out.println("-------Generating choices for color: " + color + " for a dice roll of: " + diceRoll + "-------");
+		
+		Set<Choice> choices = new HashSet<Choice>();
 		
 		AirplaneFormation formationAtHome = board.getFormations(color.getHome(), color);
 		if (formationAtHome == null || formationAtHome.getSize() < NUMBER_OF_AIRPLANES_PER_PLAYER) {
 			if (diceRoll == 6 && hangers.get(color).getPlanesInHanger() > 0) {
+				choices.add(new Choice(ChoiceType.MOVE_PLANE_TO_RUNWAY));
 				System.out.println("-Can move plane from hanger to runway");
 				System.out.println();
 			}
@@ -125,8 +123,10 @@ public class Game {
 				// and formation size is one since when a plane takes off it's a formation of 1
 				int destination = raycastDestination(1, color, color.getSpawn(), diceRoll - 1);
 				
+				Choice liftoffChoice = new Choice(ChoiceType.LAUNCH_PLANE_FROM_RUNWAY, destination);
+				choices.add(liftoffChoice);
 				System.out.println("-Can liftoff a plane from the runway to position: " + destination);
-				generateBonusChoices(1, color, destination);
+				choices.addAll(generateBonusChoices(1, color, destination, liftoffChoice));
 				System.out.println();
 			}
 			
@@ -138,8 +138,10 @@ public class Game {
 					int destination = raycastDestination(formation.getSize(), color, currentPosition, diceRoll);
 					
 					if (destination != currentPosition) {
+						Choice flyChoice = new Choice(ChoiceType.FLY, destination, currentPosition);
+						choices.add(flyChoice);
 						System.out.println("-Can fly plane formation from " + currentPosition + " to " + destination);
-						generateBonusChoices(formation.getSize(), color, destination);
+						choices.addAll(generateBonusChoices(formation.getSize(), color, destination, flyChoice));
 						System.out.println();
 					}
 				}
@@ -149,27 +151,34 @@ public class Game {
 		}
 		
 		System.out.println();
+		return choices;
 	}
 	
-	private final void generateBonusChoices(int sizeOfFormation, GameColor color, int positionLanded) {
-		generateBonusChoices(sizeOfFormation, color, positionLanded, false, false);
+	// This method recursively generates bonus choices for when a formation of the given size and color lands on this position after flying
+	private final Set<Choice> generateBonusChoices(int sizeOfFormation, GameColor color, int positionLanded, Choice choice) {
+		return generateBonusChoices(sizeOfFormation, color, positionLanded, choice, false, false);
 	}
 	
-	private final void generateBonusChoices(int sizeOfFormation, GameColor color, int positionLanded, boolean jumped, boolean slided) {
+	// The recursive pair for the other generateBonusChoices function
+	private final Set<Choice> generateBonusChoices(int sizeOfFormation, GameColor color, int positionLanded, Choice choice, boolean jumped, boolean slided) {
+		Set<Choice> choices = new HashSet<Choice>();
+		
 		if (positionLanded < BOARD_MAIN_ROUTE_END) {
 			GameColor colorOfPoint = GameColor.getColorOfPoint(positionLanded);
 			if (color == colorOfPoint) { // Matching color! Can be a slide or jump square
 				if (!slided && positionLanded == colorOfPoint.getSlideStart()) {
 					int obstacleSize = 0;
-					if (!board.getFormations(colorOfPoint.getSlideCross()).isEmpty()) {
+					if (!board.getFormations(color.getSlideCross()).isEmpty()) {
 						// On the home stretch, between exit dest and home, will only have one airplane formation
 						// since only plane formations of their color can be on it
-						obstacleSize = board.getFormations(colorOfPoint.getSlideCross()).iterator().next().getSize();
+						obstacleSize = board.getFormations(color.getSlideCross()).iterator().next().getSize();
 					}
 					
 					if (obstacleSize <= sizeOfFormation) {
+						Choice slideChoice = new Choice(ChoiceType.SLIDE, color.getSlideEnd(), positionLanded, choice);
+						choices.add(slideChoice);
 						System.out.println("--From " + positionLanded + ", can slide to position: " + colorOfPoint.getSlideEnd());
-						generateBonusChoices(sizeOfFormation, color, colorOfPoint.getSlideEnd(), jumped, true);
+						choices.addAll(generateBonusChoices(sizeOfFormation, color, color.getSlideEnd(), slideChoice, jumped, true));
 					}
 				}
 				
@@ -177,14 +186,19 @@ public class Game {
 					int destination = raycastDestination(sizeOfFormation, color,
 							positionLanded, 4);
 					if (destination != positionLanded) {
+						Choice jumpChoice = new Choice(ChoiceType.JUMP, destination, positionLanded, choice);
+						choices.add(jumpChoice);
 						System.out.println("--From " + positionLanded + ", can jump to position: " + destination);
-						generateBonusChoices(sizeOfFormation, color, destination, true, slided);
+						choices.addAll(generateBonusChoices(sizeOfFormation, color, destination, jumpChoice, true, slided));
 					}
 				}
 			}
 		}
+		
+		return choices;
 	}
 	
+	// This method returns the farthest destination from the start position to the given displacement for the given formation size and color
 	private int raycastDestination(int sizeOfFormation, GameColor color, int startPosition, int displacement) {
 		// find the closest obstacle by advancing until we find an obstacle
 		int ray = startPosition;
@@ -310,7 +324,8 @@ public class Game {
 		redFormation.addPlane(new Airplane());
 		redFormation.addPlane(new Airplane());
 		
-		game.generateChoices(GameColor.RED, 6);		
+		game.generateChoices(GameColor.RED, 6);
+		
 	}
 	
 	private static void printHangerInfo(GameColor color, Game game) {
