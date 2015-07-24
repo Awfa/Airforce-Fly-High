@@ -1,6 +1,7 @@
 package com.haanthony;
 
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -57,7 +58,7 @@ public class Game {
 
 		// Returns the slide crossing point for this color - the point they cross to get to the slide ending point
 		private int getSlideCross() { return slideCross; }
-		
+
 		// Returns the color of a point on the board
 		private static GameColor getColorOfPoint(int point) {
 			verifyPointInbounds(point);
@@ -93,6 +94,10 @@ public class Game {
 	private Map<GameColor, Hanger> hangers;
 	private Board board;
 	
+	private Map<Choice, GameAction> actionsMap;
+	
+	private GameColor playerTurn;
+	
 	public Game() {
 		hangers = new EnumMap<>(GameColor.class);
 		
@@ -101,6 +106,7 @@ public class Game {
 		}
 		
 		board = new Board(GAME_BOARD_SIZE);
+		actionsMap = new HashMap<>();
 	}
 	
 	// This method generates the available choices for a color given the dice roll
@@ -198,6 +204,35 @@ public class Game {
 		return choices;
 	}
 	
+	private Map<Choice, GameAction> generateGameActions(Set<Choice> choices, GameColor color) {
+		Map<Choice, GameAction> resultMap = new HashMap<>();
+		for (Choice choice : choices) {
+			resultMap.put(choice, generateGameAction(choice, color));
+		}
+		return resultMap;
+	}
+	
+	private GameAction generateGameAction(Choice choice, GameColor color) {
+		GameAction nextAction = null;
+		
+		if (choice.getParentChoice() != null) {
+			nextAction = generateGameAction(choice.getParentChoice(), color);
+		}
+		
+		switch(choice.getType()) {
+		case MOVE_PLANE_TO_RUNWAY:
+			return new MoveToRunwayAction(color);
+		case LAUNCH_PLANE_FROM_RUNWAY:
+			return new LaunchPlaneFromRunwayAction(color, choice.getDestination());
+		case FLY:
+		case JUMP:
+		case SLIDE:
+			return new MoveAction(board.getFormations(choice.getOrigin(), color), choice.getDestination(), nextAction);
+		default:
+			throw new AssertionError("Not all cases covered!?");	
+		}
+	}
+	
 	// This method returns the farthest destination from the start position to the given displacement for the given formation size and color
 	private int raycastDestination(int sizeOfFormation, GameColor color, int startPosition, int displacement) {
 		// find the closest obstacle by advancing until we find an obstacle
@@ -242,12 +277,71 @@ public class Game {
 		return ray;
 	}
 	
-	
 	// Verify that the given point is inbounds of the board
 	// If it's not, then an IllegalArgumentException is thrown
 	private static void verifyPointInbounds(int point) {
 		if (point < 0 || point >= GAME_BOARD_SIZE) {
 			throw new IllegalArgumentException();
+		}
+	}
+	
+	private interface GameAction {
+		public void execute();
+	}
+	
+	private class MoveToRunwayAction implements GameAction {
+		private Hanger hanger;
+		
+		public MoveToRunwayAction(GameColor color) {
+			this.hanger = hangers.get(color);
+		}
+		
+		@Override
+		public void execute() {
+			hanger.moveAirplaneToRunway();
+		}
+	}
+	
+	private class LaunchPlaneFromRunwayAction implements GameAction {
+		private Hanger hanger;
+		private int destination;
+		private GameAction nextAction;
+		
+		public LaunchPlaneFromRunwayAction(GameColor color, int destination) {
+			this.hanger = hangers.get(color);
+			this.destination = destination;
+			this.nextAction = nextAction;
+		}
+		
+		@Override
+		public void execute() {
+			AirplaneFormation formation = hanger.launchPlaneFromRunway();
+			board.addFormation(formation, formation.getColor().getSpawn());
+			new MoveAction(formation, destination, nextAction).execute();
+		}
+	}
+	
+	private class MoveAction implements GameAction {
+		private AirplaneFormation formation;
+		private int destination;
+		private GameAction nextAction;
+		
+		public MoveAction(AirplaneFormation formation, int destination) {
+			this(formation, destination, null);
+		}
+		
+		public MoveAction(AirplaneFormation formation, int destination, GameAction nextAction) {
+			this.formation = formation;
+			this.destination = destination;
+			this.nextAction = nextAction;
+		}
+		
+		@Override
+		public void execute() {
+			board.moveFormation(formation, destination);
+			if (nextAction != null) {
+				nextAction.execute();
+			}
 		}
 	}
 	

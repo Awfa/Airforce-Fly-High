@@ -91,4 +91,8 @@ public class Choice {
 		}
 		return origin;
 	}
+	
+	public Choice getParentChoice() {
+		return parentChoice;
+	}
 }
