@@ -210,7 +210,7 @@ public class Game {
 		while (displacement > 0 && !obstacleFound) {
 			for (AirplaneFormation possibleObstacle : board.getFormationsExcludingColor(ray, color)) {
 				// We check the size against one because freshly lifted off formations start at size 1
-				if (possibleObstacle.getSize() > 1) {
+				if (possibleObstacle.getSize() > sizeOfFormation) {
 					obstacleFound = true;
 				}
 			}
