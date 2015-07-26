@@ -207,30 +207,33 @@ public class Game {
 	private Map<Choice, GameAction> generateGameActions(Set<Choice> choices, GameColor color) {
 		Map<Choice, GameAction> resultMap = new HashMap<>();
 		for (Choice choice : choices) {
-			resultMap.put(choice, generateGameAction(choice, color));
+			resultMap.put(choice, generateGameAction(choice, color, null));
 		}
 		return resultMap;
 	}
 	
-	private GameAction generateGameAction(Choice choice, GameColor color) {
-		GameAction nextAction = null;
-		
-		if (choice.getParentChoice() != null) {
-			nextAction = generateGameAction(choice.getParentChoice(), color);
-		}
-		
+	private GameAction generateGameAction(Choice choice, GameColor color, MoveAction nextAction) {
+		MoveAction action = null;
+
 		switch(choice.getType()) {
 		case MOVE_PLANE_TO_RUNWAY:
 			return new MoveToRunwayAction(color);
 		case LAUNCH_PLANE_FROM_RUNWAY:
-			return new LaunchPlaneFromRunwayAction(color, choice.getDestination());
+			return new LaunchPlaneFromRunwayAction(color, choice.getDestination(), nextAction);
 		case FLY:
 		case JUMP:
 		case SLIDE:
-			return new MoveAction(board.getFormations(choice.getOrigin(), color), choice.getDestination(), nextAction);
+			action = new MoveAction(board.getFormations(choice.getOrigin(), color), choice.getDestination(), nextAction);
+			break;
 		default:
 			throw new AssertionError("Not all cases covered!?");	
 		}
+		
+		if (choice.getParentChoice() != null) {
+			return generateGameAction(choice.getParentChoice(), color, action);
+		}
+		
+		return action;
 	}
 	
 	// This method returns the farthest destination from the start position to the given displacement for the given formation size and color
@@ -305,9 +308,9 @@ public class Game {
 	private class LaunchPlaneFromRunwayAction implements GameAction {
 		private Hanger hanger;
 		private int destination;
-		private GameAction nextAction;
+		private MoveAction nextAction;
 		
-		public LaunchPlaneFromRunwayAction(GameColor color, int destination) {
+		public LaunchPlaneFromRunwayAction(GameColor color, int destination, MoveAction nextAction) {
 			this.hanger = hangers.get(color);
 			this.destination = destination;
 			this.nextAction = nextAction;
@@ -324,13 +327,10 @@ public class Game {
 	private class MoveAction implements GameAction {
 		private AirplaneFormation formation;
 		private int destination;
-		private GameAction nextAction;
+		private MoveAction nextAction;
 		
-		public MoveAction(AirplaneFormation formation, int destination) {
-			this(formation, destination, null);
-		}
 		
-		public MoveAction(AirplaneFormation formation, int destination, GameAction nextAction) {
+		public MoveAction(AirplaneFormation formation, int destination, MoveAction nextAction) {
 			this.formation = formation;
 			this.destination = destination;
 			this.nextAction = nextAction;
@@ -340,91 +340,45 @@ public class Game {
 		public void execute() {
 			board.moveFormation(formation, destination);
 			if (nextAction != null) {
-				nextAction.execute();
+				nextAction.execute(formation);
 			}
+		}
+		
+		private void execute(AirplaneFormation formation) {
+			this.formation = formation;
+			execute();
 		}
 	}
 	
 	public static void main(String[] args) {
 		Game game = new Game();
 		
-		game.generateChoices(GameColor.BLUE, 6);
+		Map<Choice, GameAction> map = game.doBlueRoll(6);
 		
 		printHangerInfo(GameColor.BLUE, game);
 		
 		System.out.println("Moving plane from blue hanger to blue runway...");
-		game.hangers.get(GameColor.BLUE).moveAirplaneToRunway();
+		map.values().iterator().next().execute();
+		printHangerInfo(GameColor.BLUE, game);		
 		
-		printHangerInfo(GameColor.BLUE, game);
-		
-		game.generateChoices(GameColor.BLUE, 18);
-		game.generateChoices(GameColor.BLUE, 14);
-		
-		System.out.println("Putting yellow 2 stacked formation in the way at position 3...");
-		AirplaneFormation yellowFormation = new AirplaneFormation(GameColor.YELLOW);
-		yellowFormation.addPlane();
-		yellowFormation.addPlane();
-		game.board.addFormation(yellowFormation, 3);
-		
-		game.generateChoices(GameColor.BLUE, 6);
-		
-		System.out.println("Putting the yellow 2 stacked formation to position 4...");
-		game.board.moveFormation(yellowFormation, 4);
-		
-		game.generateChoices(GameColor.BLUE, 2);
-		
-		game.generateChoices(GameColor.YELLOW, 3);
-		
-		System.out.println("Putting green 3 stacked formation in the way of the yellow slide at position 60...");
-		AirplaneFormation greenFormation = new AirplaneFormation(GameColor.GREEN);
-		greenFormation.addPlane();
-		greenFormation.addPlane();
-		greenFormation.addPlane();
-		game.board.addFormation(greenFormation, 60);
-		
-		game.generateChoices(GameColor.GREEN, 3);
-		game.generateChoices(GameColor.YELLOW, 3);
-		
-		System.out.println("Removing green 3 stacked formation in the way of the yellow slide at position 60...");
-		if (greenFormation == game.board.getFormations(60, GameColor.GREEN)) {
-			System.out.println("Board get formation works.");
+		map = game.doBlueRoll(6);
+		for (Choice choice : map.keySet()) {
+			if (choice.getType() == ChoiceType.JUMP) {
+				System.out.println(choice);
+				map.get(choice).execute();
+			}
 		}
-		game.board.removeFormation(game.board.getFormations(60, GameColor.GREEN));
 		
-		game.generateChoices(GameColor.YELLOW, 3);
-		
-		System.out.println("Removing the yellow 2 stacked formation from position 4...");
-		game.board.removeFormation(yellowFormation);
-		
-		game.generateChoices(GameColor.YELLOW, 6);
-		game.generateChoices(GameColor.BLUE, 6);
-		
-		System.out.println("Putting a blue plane formation of size 1 at position 47 (exit is in 5 spaces)");
-		AirplaneFormation blueFormation = new AirplaneFormation(GameColor.BLUE);
-		blueFormation.addPlane();
-		game.board.addFormation(blueFormation, 47);
-		
-		game.generateChoices(GameColor.BLUE, 6);
-		
-		System.out.println("Putting red 2 stacked formation at red home...");
-		AirplaneFormation redFormation = new AirplaneFormation(GameColor.RED);
-		redFormation.addPlane();
-		redFormation.addPlane();
-		game.board.addFormation(redFormation, GameColor.RED.getHome());
-		
-		game.generateChoices(GameColor.RED, 6);
-		
-		System.out.println("Adding 2 more planes to red home...");
-		redFormation.addPlane();
-		redFormation.addPlane();
-		
-		game.generateChoices(GameColor.RED, 6);
-		
+		map = game.doBlueRoll(4);
 	}
 	
 	private static void printHangerInfo(GameColor color, Game game) {
 		System.out.println("Planes in " + color + " hanger: " + game.hangers.get(color).getPlanesInHanger());
 		System.out.println("Planes in " + color + " runway: " + game.hangers.get(color).getPlanesOnRunway());
 		System.out.println();
+	}
+	
+	private Map<Choice, GameAction> doBlueRoll(int diceRoll) {
+		return generateGameActions(generateChoices(GameColor.BLUE, diceRoll), GameColor.BLUE);
 	}
 }
