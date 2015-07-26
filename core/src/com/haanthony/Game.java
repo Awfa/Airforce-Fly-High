@@ -1,9 +1,11 @@
 package com.haanthony;
 
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import com.haanthony.Choice.ChoiceType;
@@ -58,7 +60,12 @@ public class Game {
 
 		// Returns the slide crossing point for this color - the point they cross to get to the slide ending point
 		private int getSlideCross() { return slideCross; }
-
+		
+		// Returns whether or not the given point is within the home stretch for this color
+		private boolean inHomeStretch(int point) {
+			return point >= exitDest && point <= home;
+		}
+		
 		// Returns the color of a point on the board
 		private static GameColor getColorOfPoint(int point) {
 			verifyPointInbounds(point);
@@ -82,9 +89,12 @@ public class Game {
 			throw new AssertionError("Assertion Error: Unable to determine color of point " + point);
 		}
 		
-		private boolean inHomeStretch(int point) {
-			return point >= exitDest && point <= home;
+		// Returns the next color of the given color
+		private static GameColor nextColor(GameColor color) {
+			// This only works because we defined the colors in this order
+			return GameColor.values()[(color.ordinal() + 1) % GameColor.values().length];
 		}
+		
 	}
 	
 	private static final int GAME_BOARD_SIZE = 76;
@@ -96,9 +106,17 @@ public class Game {
 	
 	private Map<Choice, GameAction> actionsMap;
 	
+	private Random randomGenerator;
+	private int lastDiceRoll;
+	
 	private GameColor playerTurn;
 	
 	public Game() {
+		randomGenerator = new Random();
+		newGame();
+	}
+	
+	public void newGame() {
 		hangers = new EnumMap<>(GameColor.class);
 		
 		for (GameColor color : GameColor.values()) {
@@ -107,6 +125,51 @@ public class Game {
 		
 		board = new Board(GAME_BOARD_SIZE);
 		actionsMap = new HashMap<>();
+		playerTurn = GameColor.values()[randomGenerator.nextInt(GameColor.values().length)];
+	}
+	
+	// Generates the choices for the current player
+	public Set<Choice> getTurnChoices() {
+		if (!actionsMap.isEmpty()) {
+			throw new IllegalStateException();
+		}
+		
+		lastDiceRoll = randomGenerator.nextInt(6) + 1;
+		populateActionsMap(playerTurn, lastDiceRoll);
+		
+		return Collections.unmodifiableSet(actionsMap.keySet());
+	}
+	
+	// TODO: Check for win conditions
+	public void playChoice(Choice choice) {
+		if (actionsMap.isEmpty()) {
+			throw new IllegalStateException("Cannot play a choice yet if no choices are generated");
+		}
+		
+		if (!actionsMap.containsKey(choice)) {
+			throw new IllegalArgumentException("The given choice cannot be played since it wasn't one of the choices");
+		}
+		
+		actionsMap.get(choice).execute();
+		
+		// Move the turn to the next player or if the roll was a 6, keep the same player
+		if (lastDiceRoll != 6) {
+			playerTurn = GameColor.nextColor(playerTurn);
+		}
+		
+		actionsMap.clear();
+	}
+	
+	public GameColor getTurn() {
+		return playerTurn;
+	}
+	
+	public int getDiceRoll() {
+		return lastDiceRoll;
+	}
+	
+	private void populateActionsMap(GameColor color, int diceRoll) {
+		actionsMap = generateGameActions(generateChoices(color, diceRoll), color);
 	}
 	
 	// This method generates the available choices for a color given the dice roll
