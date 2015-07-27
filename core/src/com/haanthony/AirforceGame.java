@@ -11,6 +11,7 @@ public class AirforceGame extends ApplicationAdapter {
 	@Override
 	public void create () {
 		batch = new SpriteBatch();
+		new HumanPlayer();
 	}
 
 	@Override
