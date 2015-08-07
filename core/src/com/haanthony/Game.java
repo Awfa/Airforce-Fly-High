@@ -134,9 +134,7 @@ public class Game {
 	public Set<Choice> getTurnChoices() {
 		if (actionsMap.isEmpty()) {
 			lastDiceRoll = randomGenerator.nextInt(6) + 1;
-			if (playerTurn == GameColor.BLUE) {
-				lastDiceRoll = 1;
-			}
+			
 			populateActionsMap(playerTurn, lastDiceRoll);
 			
 			// If no choices were generated, skip the player's turn

@@ -94,14 +94,10 @@ public class Board {
 	// If the formation is not on the board, an IllegalArgumentException is thrown
 	public void moveFormation(AirplaneFormation formation, int newPosition) {
 		verifyPositionsInbound(newPosition);
-		
-		String posMapBefore = positionMap.toString();
-		
+
 		removeFormationFromPositions(formation);
 		positionList.get(newPosition).add(formation);
 		positionMap.put(formation, newPosition);
-		
-		System.err.println("Before:\n" + posMapBefore + "\nAfter:\n" + positionMap + "\n");
 	}
 	
 	// Remove the given formation from the board
