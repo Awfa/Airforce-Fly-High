@@ -141,7 +141,7 @@ public class BoardRenderManager {
 			// Spinning
 			float targetAngle = (((float) Math.toDegrees(Math.atan2(originY - destination.y, originX - destination.x))) + 180);
 			float angleDifference = targetAngle - originRotation;
-			if (Math.abs(angleDifference) > 180) {
+			while (Math.abs(angleDifference) > 180) {
 				float sign = angleDifference / Math.abs(angleDifference);
 				angleDifference -= sign * 360;
 			}

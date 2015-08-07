@@ -48,7 +48,7 @@ public class HangerRenderManager {
 		
 		float targetAngle = (((float) Math.toDegrees(Math.atan2(originY - position.y, originX - position.x))) + 180);
 		float angleDifference = targetAngle - plane.getRotation();
-		if (Math.abs(angleDifference) > 180) {
+		while (Math.abs(angleDifference) > 180) {
 			float sign = angleDifference / Math.abs(angleDifference);
 			angleDifference -= sign * 360;
 		}
