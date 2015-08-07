@@ -47,7 +47,7 @@ public class Hanger {
 			throw new IllegalArgumentException("Cannot land plane onto hanger of a different color.");
 		}
 		
-		if (hanger + runway + planes.getSize() == capacity) {
+		if (hanger + runway + planes.getSize() > capacity) {
 			throw new IllegalStateException("No more room in this hanger for more airplanes.");
 		}
 		

@@ -205,9 +205,10 @@ public class Game {
 			if (hangers.get(color).getPlanesOnRunway() > 0) {
 				// We subtract 1 from the dice roll because moving from the runway to inflight takes one move.
 				// and formation size is one since when a plane takes off it's a formation of 1
-				int destination = raycastDestination(1, color, color.getSpawn(), diceRoll - 1);
+				Set<Integer> takedowns = new HashSet<Integer>();
+				int destination = raycastDestination(1, color, color.getSpawn(), diceRoll - 1, takedowns);
 				
-				Choice liftoffChoice = new Choice(ChoiceType.LAUNCH_PLANE_FROM_RUNWAY, color, destination);
+				Choice liftoffChoice = new Choice(ChoiceType.LAUNCH_PLANE_FROM_RUNWAY, color, destination, takedowns);
 				choices.add(liftoffChoice);
 				System.out.println("-Can liftoff a plane from the runway to position: " + destination);
 				choices.addAll(generateBonusChoices(1, color, destination, liftoffChoice));
@@ -219,10 +220,11 @@ public class Game {
 				int currentPosition = board.getFormationsPosition(formation);
 				
 				if (currentPosition != color.getHome()) {
-					int destination = raycastDestination(formation.getSize(), color, currentPosition, diceRoll);
+					Set<Integer> takedowns = new HashSet<Integer>();
+					int destination = raycastDestination(formation.getSize(), color, currentPosition, diceRoll, takedowns);
 					
 					if (destination != currentPosition) {
-						Choice flyChoice = new Choice(ChoiceType.FLY, color, destination, currentPosition);
+						Choice flyChoice = new Choice(ChoiceType.FLY, color, destination, takedowns, currentPosition);
 						choices.add(flyChoice);
 						System.out.println("-Can fly plane formation from " + currentPosition + " to " + destination);
 						choices.addAll(generateBonusChoices(formation.getSize(), color, destination, flyChoice));
@@ -259,7 +261,9 @@ public class Game {
 					}
 					
 					if (obstacleSize <= sizeOfFormation) {
-						Choice slideChoice = new Choice(ChoiceType.SLIDE, color, color.getSlideEnd(), positionLanded, choice);
+						Set<Integer> takedowns = new HashSet<Integer>();
+						takedowns.add(color.getSlideCross());
+						Choice slideChoice = new Choice(ChoiceType.SLIDE, color, color.getSlideEnd(), takedowns, positionLanded, choice);
 						choices.add(slideChoice);
 						System.out.println("--From " + positionLanded + ", can slide to position: " + colorOfPoint.getSlideEnd());
 						choices.addAll(generateBonusChoices(sizeOfFormation, color, color.getSlideEnd(), slideChoice, jumped, true));
@@ -267,10 +271,11 @@ public class Game {
 				}
 				
 				if (!jumped && positionLanded != colorOfPoint.getExit()) {
+					Set<Integer> takedowns = new HashSet<Integer>();
 					int destination = raycastDestination(sizeOfFormation, color,
-							positionLanded, 4);
+							positionLanded, 4, takedowns);
 					if (destination != positionLanded) {
-						Choice jumpChoice = new Choice(ChoiceType.JUMP, color, destination, positionLanded, choice);
+						Choice jumpChoice = new Choice(ChoiceType.JUMP, color, destination, takedowns, positionLanded, choice);
 						choices.add(jumpChoice);
 						System.out.println("--From " + positionLanded + ", can jump to position: " + destination);
 						choices.addAll(generateBonusChoices(sizeOfFormation, color, destination, jumpChoice, true, slided));
@@ -297,11 +302,11 @@ public class Game {
 		case MOVE_PLANE_TO_RUNWAY:
 			return new MoveToRunwayAction(color);
 		case LAUNCH_PLANE_FROM_RUNWAY:
-			return new LaunchPlaneFromRunwayAction(color, choice.getDestination(), nextAction);
+			return new LaunchPlaneFromRunwayAction(color, choice.getDestination(), choice.getTakedowns(), nextAction);
 		case FLY:
 		case JUMP:
 		case SLIDE:
-			action = new MoveAction(board.getFormations(choice.getOrigin(), color), choice.getDestination(), nextAction);
+			action = new MoveAction(board.getFormations(choice.getOrigin(), color), choice.getDestination(), choice.getTakedowns(), nextAction);
 			break;
 		default:
 			throw new AssertionError("Not all cases covered!?");	
@@ -315,7 +320,7 @@ public class Game {
 	}
 	
 	// This method returns the farthest destination from the start position to the given displacement for the given formation size and color
-	private int raycastDestination(int sizeOfFormation, GameColor color, int startPosition, int displacement) {
+	private int raycastDestination(int sizeOfFormation, GameColor color, int startPosition, int displacement, Set<Integer> takedowns) {
 		// find the closest obstacle by advancing until we find an obstacle
 		int ray = startPosition;
 		int rayDisplacement = 1;
@@ -328,6 +333,10 @@ public class Game {
 				// We check the size against one because freshly lifted off formations start at size 1
 				if (possibleObstacle.getSize() > sizeOfFormation) {
 					obstacleFound = true;
+				} else {
+					if (ray != startPosition) {
+						takedowns.add(ray);
+					}
 				}
 			}
 			
@@ -387,11 +396,13 @@ public class Game {
 		private Hanger hanger;
 		private int destination;
 		private MoveAction nextAction;
+		private Set<Integer> takedowns;
 		
-		public LaunchPlaneFromRunwayAction(GameColor color, int destination, MoveAction nextAction) {
+		public LaunchPlaneFromRunwayAction(GameColor color, int destination, Set<Integer> takedowns, MoveAction nextAction) {
 			this.hanger = hangers.get(color);
 			this.destination = destination;
 			this.nextAction = nextAction;
+			this.takedowns = takedowns;
 		}
 		
 		@Override
@@ -400,7 +411,7 @@ public class Game {
 			int spawnPoint = formation.getColor().getSpawn();
 			board.addFormation(formation, spawnPoint);
 			if (spawnPoint != destination) {
-				new MoveAction(formation, destination, nextAction).execute();
+				new MoveAction(formation, destination, takedowns, nextAction).execute();
 			}
 		}
 	}
@@ -409,16 +420,25 @@ public class Game {
 		private AirplaneFormation formation;
 		private int destination;
 		private MoveAction nextAction;
+		private Set<Integer> takedowns;
 		
-		
-		public MoveAction(AirplaneFormation formation, int destination, MoveAction nextAction) {
+		public MoveAction(AirplaneFormation formation, int destination, Set<Integer> takedowns, MoveAction nextAction) {
 			this.formation = formation;
 			this.destination = destination;
 			this.nextAction = nextAction;
+			this.takedowns = takedowns;
 		}
 		
 		@Override
 		public void execute() {
+			// Take down planes in the way
+			for (Integer position : takedowns) {
+				for (AirplaneFormation planesToFall : board.getFormationsExcludingColor(position, formation.getColor())) {
+					board.removeFormation(planesToFall);
+					hangers.get(planesToFall.getColor()).landAirplanes(planesToFall);
+				}
+			}
+			
 			if (nextAction != null) {
 				board.moveFormation(formation, destination);
 				nextAction.execute(formation);

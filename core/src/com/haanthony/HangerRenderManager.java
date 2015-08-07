@@ -41,6 +41,7 @@ public class HangerRenderManager {
 		ImmutablePoint2 position = spawnPoints.get(hangerPlanes.size());
 		MoveToAction moveActionToHanger = new MoveToAction();
 		moveActionToHanger.setPosition(position.x, position.y, Align.center);
+		moveActionToHanger.setDuration(AIRPLANE_SHUFFLE_DURATION * 3);
 		plane.addAction(moveActionToHanger);
 		hangerPlanes.add(plane);
 	}
@@ -79,5 +80,21 @@ public class HangerRenderManager {
 		}
 		
 		return runwayPlanes.remove();
+	}
+	
+	public boolean isDoneRendering() {
+		for (Image image : hangerPlanes) {
+			if (image.getActions().size > 0) {
+				return false;
+			}
+		}
+		
+		for (Image image : runwayPlanes) {
+			if (image.getActions().size > 0) {
+				return false;
+			}
+		}
+		
+		return true;
 	}
 }

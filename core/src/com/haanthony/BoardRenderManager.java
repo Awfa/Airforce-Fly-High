@@ -100,6 +100,13 @@ public class BoardRenderManager {
 				}
 			}
 		}
+		
+		for (HangerRenderManager hanger : hangerRenderManagers.values()) {
+			if (!hanger.isDoneRendering()) {
+				return false;
+			}
+		}
+		
 		return true;
 	}
 	
@@ -125,6 +132,18 @@ public class BoardRenderManager {
 			subMove.setPosition(destination.x, destination.y, Align.center);
 			subMove.setDuration(0.2f);
 			planeMoveAction.addAction(subMove);
+			
+			for (Integer position : choice.getTakedowns()) {
+				for (GameColor planeColor : GameColor.values()) {
+					if (planeColor != choice.getColor()) {
+						Set<Image> imagesToRemove = new HashSet<Image>(positionLists.get(planeColor).get(position));
+						for (Image imageToRemove : imagesToRemove) {
+							positionLists.get(planeColor).get(position).remove(imageToRemove);
+							hangerRenderManagers.get(planeColor).addPlaneFromBoard(imageToRemove);
+						}
+					}
+				}
+			}
 		}
 		
 		image.addAction(planeMoveAction);

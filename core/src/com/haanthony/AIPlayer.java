@@ -18,7 +18,6 @@ public class AIPlayer implements Player {
 	public void updateChoices(Set<Choice> choices) {
 		if (!choices.isEmpty()) {
 			manager.playChoice(choices.iterator().next());
-			
 		}
 	}
 

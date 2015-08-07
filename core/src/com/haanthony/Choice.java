@@ -1,5 +1,8 @@
 package com.haanthony;
 
+import java.util.Collections;
+import java.util.Set;
+
 import com.haanthony.Game.GameColor;
 
 public class Choice {
@@ -31,19 +34,21 @@ public class Choice {
 	
 	private final GameColor color;
 	
+	private final Set<Integer> takedowns;
+	
 	public Choice(ChoiceType type, GameColor color) {
-		this(type, color, DEFAULT_INVALID_POSITION);
+		this(type, color, DEFAULT_INVALID_POSITION, null);
 	}
 	
-	public Choice(ChoiceType type, GameColor color, int destination) {
-		this(type, color, destination, DEFAULT_INVALID_POSITION);
+	public Choice(ChoiceType type, GameColor color, int destination, Set<Integer> takedowns) {
+		this(type, color, destination, takedowns, DEFAULT_INVALID_POSITION);
 	}
 	
-	public Choice(ChoiceType type, GameColor color, int destination, int origin) {
-		this(type, color, destination, origin, null);
+	public Choice(ChoiceType type, GameColor color, int destination, Set<Integer> takedowns, int origin) {
+		this(type, color, destination, takedowns, origin, null);
 	}
 	
-	public Choice(ChoiceType type, GameColor color, int destination, int origin, Choice parentChoice) {
+	public Choice(ChoiceType type, GameColor color, int destination, Set<Integer> takedowns, int origin, Choice parentChoice) {
 		if (destination != DEFAULT_INVALID_POSITION && type == ChoiceType.MOVE_PLANE_TO_RUNWAY) {
 			throw new IllegalArgumentException("Type " + type + " can not have a destination");
 		}
@@ -54,6 +59,11 @@ public class Choice {
 		
 		this.type = type;
 		this.destination = destination;
+		if (takedowns != null) {
+			this.takedowns = Collections.unmodifiableSet(takedowns);
+		} else {
+			this.takedowns = null;
+		}
 		this.origin = origin;
 		this.parentChoice = parentChoice;
 		this.color = color;
@@ -88,6 +98,10 @@ public class Choice {
 			throw new IllegalArgumentException("Destination not supported for type " + type);
 		}
 		return destination;
+	}
+	
+	public Set<Integer> getTakedowns() {
+		return takedowns;
 	}
 	
 	public int getOrigin() {

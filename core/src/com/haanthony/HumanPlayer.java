@@ -1,15 +1,10 @@
 package com.haanthony;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Scanner;
 import java.util.Set;
 
 import com.badlogic.gdx.scenes.scene2d.Group;
 
 public class HumanPlayer implements Player {
-	private List<Choice> choices;
 	private GameInfo latestGameInfo;
 	private GameManager manager;
 	
@@ -42,8 +37,11 @@ public class HumanPlayer implements Player {
 	}
 	
 	@Override
-	public void updateChoices(Set<Choice> newChoices) {
-		choicesRenderer.renderChoices(newChoices);
+	public void updateChoices(Set<Choice> choices) {
+		//choicesRenderer.renderChoices(choices);
+		if (!choices.isEmpty()) {
+			manager.playChoice(choices.iterator().next());
+		}
 	}
 	
 	public void update() {
