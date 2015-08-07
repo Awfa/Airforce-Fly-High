@@ -27,7 +27,6 @@ public class HumanPlayer implements Player {
 	
 	@Override
 	public void updateGameInfo(GameInfo info) {
-		
 		Choice lastChoice = info.getLastChoice();
 		if (latestGameInfo != null && latestGameInfo.getLastChoice() != lastChoice && lastChoice != null) {
 			renderManager.processChoice(lastChoice);
@@ -38,10 +37,7 @@ public class HumanPlayer implements Player {
 	
 	@Override
 	public void updateChoices(Set<Choice> choices) {
-		//choicesRenderer.renderChoices(choices);
-		if (!choices.isEmpty()) {
-			manager.playChoice(choices.iterator().next());
-		}
+		choicesRenderer.renderChoices(choices);
 	}
 	
 	public void update() {

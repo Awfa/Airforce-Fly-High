@@ -12,6 +12,8 @@ import java.util.Set;
 
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.actions.MoveToAction;
+import com.badlogic.gdx.scenes.scene2d.actions.RotateByAction;
+import com.badlogic.gdx.scenes.scene2d.actions.RotateToAction;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
@@ -19,6 +21,9 @@ import com.haanthony.Choice.ChoiceType;
 import com.haanthony.Game.GameColor;
 
 public class BoardRenderManager {
+	public static final float FLY_SPEED = 700.f;
+	public static final float SPIN_SPEED = 500.f;
+	
 	private List<ImmutablePoint2> boardPositions;
 	private Map<GameColor, HangerRenderManager> hangerRenderManagers;
 	private Group renderGroup;
@@ -40,6 +45,7 @@ public class BoardRenderManager {
 			
 			for (int i = 0; i < Game.NUMBER_OF_AIRPLANES_PER_PLAYER; ++i) {
 				Image plane =  new Image(AssetLoader.getInstance().getAirplaneSprite(color));
+				plane.setOrigin(Align.center);
 				hangerRenderManagers.get(color).addPlane(plane);
 				renderGroup.addActor(plane);
 			}
@@ -125,13 +131,41 @@ public class BoardRenderManager {
 		}
 		positionLists.get(color).get(choiceStack.peekLast().getDestination()).add(image);
 		
+		float originX = image.getX() + image.getOriginX();
+		float originY = image.getY() + image.getOriginY();
+		float originRotation = image.getRotation();
 		SequenceAction planeMoveAction = new SequenceAction();
 		for (Choice choice : choiceStack) {
 			ImmutablePoint2 destination = boardPositions.get(choice.getDestination());
-			MoveToAction subMove = new MoveToAction();
-			subMove.setPosition(destination.x, destination.y, Align.center);
-			subMove.setDuration(0.2f);
-			planeMoveAction.addAction(subMove);
+			
+			// Spinning
+			float targetAngle = (((float) Math.toDegrees(Math.atan2(originY - destination.y, originX - destination.x))) + 180);
+			float angleDifference = targetAngle - originRotation;
+			if (Math.abs(angleDifference) > 180) {
+				float sign = angleDifference / Math.abs(angleDifference);
+				angleDifference -= sign * 360;
+			}
+			float spinDuration = Math.abs(angleDifference) / SPIN_SPEED;
+			
+			RotateByAction rotationAction = new RotateByAction();
+			rotationAction.setAmount(angleDifference);
+			rotationAction.setDuration(spinDuration);
+			originRotation = targetAngle;
+			
+			// Flying
+			float deltaX = destination.x - originX;
+			float deltaY  = destination.y - originY;
+			float distance = (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+			float flyDuration = distance / FLY_SPEED;
+			
+			MoveToAction flyAction = new MoveToAction();
+			flyAction.setPosition(destination.x, destination.y, Align.center);
+			flyAction.setDuration(flyDuration);
+			originX = destination.x;
+			originY = destination.y;
+			
+			planeMoveAction.addAction(rotationAction);
+			planeMoveAction.addAction(flyAction);
 			
 			for (Integer position : choice.getTakedowns()) {
 				for (GameColor planeColor : GameColor.values()) {

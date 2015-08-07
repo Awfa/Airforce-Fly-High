@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Queue;
 
 import com.badlogic.gdx.scenes.scene2d.actions.MoveToAction;
+import com.badlogic.gdx.scenes.scene2d.actions.RotateByAction;
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 
@@ -38,10 +40,30 @@ public class HangerRenderManager {
 			throw new IllegalStateException("Hanger Render Manager to full to add a plane to the runway");
 		}
 		
+		SequenceAction moveActionToHanger = new SequenceAction();
 		ImmutablePoint2 position = spawnPoints.get(hangerPlanes.size());
-		MoveToAction moveActionToHanger = new MoveToAction();
-		moveActionToHanger.setPosition(position.x, position.y, Align.center);
-		moveActionToHanger.setDuration(AIRPLANE_SHUFFLE_DURATION * 3);
+
+		float originX = plane.getX() + plane.getOriginX();
+		float originY = plane.getY() + plane.getOriginY();
+		
+		float targetAngle = (((float) Math.toDegrees(Math.atan2(originY - position.y, originX - position.x))) + 180);
+		float angleDifference = targetAngle - plane.getRotation();
+		if (Math.abs(angleDifference) > 180) {
+			float sign = angleDifference / Math.abs(angleDifference);
+			angleDifference -= sign * 360;
+		}
+		float spinDuration = Math.abs(angleDifference) / BoardRenderManager.SPIN_SPEED;
+		
+		RotateByAction rotationAction = new RotateByAction();
+		rotationAction.setAmount(angleDifference);
+		rotationAction.setDuration(spinDuration);
+		
+		MoveToAction flyAction = new MoveToAction();
+		flyAction.setPosition(position.x, position.y, Align.center);
+		flyAction.setDuration(AIRPLANE_SHUFFLE_DURATION * 3);
+		
+		moveActionToHanger.addAction(rotationAction);
+		moveActionToHanger.addAction(flyAction);
 		plane.addAction(moveActionToHanger);
 		hangerPlanes.add(plane);
 	}
