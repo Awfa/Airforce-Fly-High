@@ -13,9 +13,9 @@ import com.haanthony.Game.GameColor;
 // The Board class represents the game board. It holds the airplane formations that are flying
 // and allows querying information from the board. It manages where pieces are.
 public class Board {
-	List<Set<AirplaneFormation>> positionList;
-	Map<AirplaneFormation, Integer> positionMap;
-	Map<GameColor, Set<AirplaneFormation>> colorMap;
+	private List<Set<AirplaneFormation>> positionList;
+	private Map<AirplaneFormation, Integer> positionMap;
+	private Map<GameColor, Set<AirplaneFormation>> colorMap;
 	
 	// Constructs a board of the given size
 	public Board(int size) {
@@ -94,9 +94,14 @@ public class Board {
 	// If the formation is not on the board, an IllegalArgumentException is thrown
 	public void moveFormation(AirplaneFormation formation, int newPosition) {
 		verifyPositionsInbound(newPosition);
+		
+		String posMapBefore = positionMap.toString();
+		
 		removeFormationFromPositions(formation);
 		positionList.get(newPosition).add(formation);
 		positionMap.put(formation, newPosition);
+		
+		System.err.println("Before:\n" + posMapBefore + "\nAfter:\n" + positionMap + "\n");
 	}
 	
 	// Remove the given formation from the board
@@ -105,6 +110,16 @@ public class Board {
 		removeFormationFromPositions(formation);
 		positionMap.remove(formation);
 		colorMap.get(formation.getColor()).remove(formation);
+	}
+	
+	public Map<AirplaneFormation, Integer> getAirplaneFormationPositions() {
+		Map<AirplaneFormation, Integer> resultMap = new HashMap<>();
+		
+		for (AirplaneFormation formation : positionMap.keySet()) {
+			resultMap.put(new AirplaneFormation(formation), positionMap.get(formation));
+		}
+		
+		return resultMap;
 	}
 	
 	// Remove the given formation from the positions map

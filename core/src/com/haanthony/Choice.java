@@ -1,5 +1,7 @@
 package com.haanthony;
 
+import com.haanthony.Game.GameColor;
+
 public class Choice {
 	public enum ChoiceType {
 		MOVE_PLANE_TO_RUNWAY		("Move a plane from the hanger to the runway"),
@@ -27,19 +29,21 @@ public class Choice {
 	private final int destination; // Should not be available for MOVE_PLANE_TO_RUNWAY
 	private final int origin; // Only available for FLY, SLIDE, and JUMP
 	
-	public Choice(ChoiceType type) {
-		this(type, DEFAULT_INVALID_POSITION);
+	private final GameColor color;
+	
+	public Choice(ChoiceType type, GameColor color) {
+		this(type, color, DEFAULT_INVALID_POSITION);
 	}
 	
-	public Choice(ChoiceType type, int destination) {
-		this(type, destination, DEFAULT_INVALID_POSITION);
+	public Choice(ChoiceType type, GameColor color, int destination) {
+		this(type, color, destination, DEFAULT_INVALID_POSITION);
 	}
 	
-	public Choice(ChoiceType type, int destination, int origin) {
-		this(type, destination, origin, null);
+	public Choice(ChoiceType type, GameColor color, int destination, int origin) {
+		this(type, color, destination, origin, null);
 	}
 	
-	public Choice(ChoiceType type, int destination, int origin, Choice parentChoice) {
+	public Choice(ChoiceType type, GameColor color, int destination, int origin, Choice parentChoice) {
 		if (destination != DEFAULT_INVALID_POSITION && type == ChoiceType.MOVE_PLANE_TO_RUNWAY) {
 			throw new IllegalArgumentException("Type " + type + " can not have a destination");
 		}
@@ -52,6 +56,7 @@ public class Choice {
 		this.destination = destination;
 		this.origin = origin;
 		this.parentChoice = parentChoice;
+		this.color = color;
 	}
 	
 	@Override
@@ -94,5 +99,9 @@ public class Choice {
 	
 	public Choice getParentChoice() {
 		return parentChoice;
+	}
+	
+	public GameColor getColor() {
+		return color;
 	}
 }

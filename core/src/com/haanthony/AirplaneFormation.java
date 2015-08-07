@@ -16,6 +16,12 @@ public class AirplaneFormation {
 		disbanded = false;
 	}
 	
+	public AirplaneFormation(AirplaneFormation formation) {
+		this.color = formation.color;
+		this.airplanes = formation.airplanes;
+		this.disbanded = formation.disbanded;
+	}
+
 	public void addPlane() {
 		airplanes++;
 	}
@@ -47,4 +53,9 @@ public class AirplaneFormation {
 	}
 	
 	public GameColor getColor() { return color; }
+	
+	@Override
+	public String toString() {
+		return "Airplane Formation of size: " + getSize() + " of color: " + getColor();
+	}
 }

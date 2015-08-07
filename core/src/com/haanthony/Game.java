@@ -99,7 +99,7 @@ public class Game {
 	
 	private static final int GAME_BOARD_SIZE = 76;
 	private static final int BOARD_MAIN_ROUTE_END = 52;
-	private static final int NUMBER_OF_AIRPLANES_PER_PLAYER = 4;
+	public static final int NUMBER_OF_AIRPLANES_PER_PLAYER = 4;
 	
 	private Map<GameColor, Hanger> hangers;
 	private Board board;
@@ -110,6 +110,8 @@ public class Game {
 	private int lastDiceRoll;
 	
 	private GameColor playerTurn;
+	
+	private Choice latestChoice;
 	
 	public Game() {
 		randomGenerator = new Random();
@@ -130,12 +132,18 @@ public class Game {
 	
 	// Generates the choices for the current player
 	public Set<Choice> getTurnChoices() {
-		if (!actionsMap.isEmpty()) {
-			throw new IllegalStateException();
+		if (actionsMap.isEmpty()) {
+			lastDiceRoll = randomGenerator.nextInt(6) + 1;
+			if (playerTurn == GameColor.BLUE) {
+				lastDiceRoll = 1;
+			}
+			populateActionsMap(playerTurn, lastDiceRoll);
+			
+			// If no choices were generated, skip the player's turn
+			if (actionsMap.isEmpty()) {
+				moveToNextPlayersTurn();
+			}
 		}
-		
-		lastDiceRoll = randomGenerator.nextInt(6) + 1;
-		populateActionsMap(playerTurn, lastDiceRoll);
 		
 		return Collections.unmodifiableSet(actionsMap.keySet());
 	}
@@ -154,10 +162,11 @@ public class Game {
 		
 		// Move the turn to the next player or if the roll was a 6, keep the same player
 		if (lastDiceRoll != 6) {
-			playerTurn = GameColor.nextColor(playerTurn);
+			moveToNextPlayersTurn();
 		}
 		
 		actionsMap.clear();
+		latestChoice = choice;
 	}
 	
 	public GameColor getTurn() {
@@ -166,6 +175,14 @@ public class Game {
 	
 	public int getDiceRoll() {
 		return lastDiceRoll;
+	}
+	
+	public GameInfo getGameInfo() {
+		return new GameInfo(board, hangers, latestChoice, lastDiceRoll);
+	}
+	
+	private void moveToNextPlayersTurn() {
+		playerTurn = GameColor.nextColor(playerTurn);
 	}
 	
 	private void populateActionsMap(GameColor color, int diceRoll) {
@@ -181,7 +198,7 @@ public class Game {
 		AirplaneFormation formationAtHome = board.getFormations(color.getHome(), color);
 		if (formationAtHome == null || formationAtHome.getSize() < NUMBER_OF_AIRPLANES_PER_PLAYER) {
 			if (diceRoll == 6 && hangers.get(color).getPlanesInHanger() > 0) {
-				choices.add(new Choice(ChoiceType.MOVE_PLANE_TO_RUNWAY));
+				choices.add(new Choice(ChoiceType.MOVE_PLANE_TO_RUNWAY, color));
 				System.out.println("-Can move plane from hanger to runway");
 				System.out.println();
 			}
@@ -192,7 +209,7 @@ public class Game {
 				// and formation size is one since when a plane takes off it's a formation of 1
 				int destination = raycastDestination(1, color, color.getSpawn(), diceRoll - 1);
 				
-				Choice liftoffChoice = new Choice(ChoiceType.LAUNCH_PLANE_FROM_RUNWAY, destination);
+				Choice liftoffChoice = new Choice(ChoiceType.LAUNCH_PLANE_FROM_RUNWAY, color, destination);
 				choices.add(liftoffChoice);
 				System.out.println("-Can liftoff a plane from the runway to position: " + destination);
 				choices.addAll(generateBonusChoices(1, color, destination, liftoffChoice));
@@ -207,7 +224,7 @@ public class Game {
 					int destination = raycastDestination(formation.getSize(), color, currentPosition, diceRoll);
 					
 					if (destination != currentPosition) {
-						Choice flyChoice = new Choice(ChoiceType.FLY, destination, currentPosition);
+						Choice flyChoice = new Choice(ChoiceType.FLY, color, destination, currentPosition);
 						choices.add(flyChoice);
 						System.out.println("-Can fly plane formation from " + currentPosition + " to " + destination);
 						choices.addAll(generateBonusChoices(formation.getSize(), color, destination, flyChoice));
@@ -244,7 +261,7 @@ public class Game {
 					}
 					
 					if (obstacleSize <= sizeOfFormation) {
-						Choice slideChoice = new Choice(ChoiceType.SLIDE, color.getSlideEnd(), positionLanded, choice);
+						Choice slideChoice = new Choice(ChoiceType.SLIDE, color, color.getSlideEnd(), positionLanded, choice);
 						choices.add(slideChoice);
 						System.out.println("--From " + positionLanded + ", can slide to position: " + colorOfPoint.getSlideEnd());
 						choices.addAll(generateBonusChoices(sizeOfFormation, color, color.getSlideEnd(), slideChoice, jumped, true));
@@ -255,7 +272,7 @@ public class Game {
 					int destination = raycastDestination(sizeOfFormation, color,
 							positionLanded, 4);
 					if (destination != positionLanded) {
-						Choice jumpChoice = new Choice(ChoiceType.JUMP, destination, positionLanded, choice);
+						Choice jumpChoice = new Choice(ChoiceType.JUMP, color, destination, positionLanded, choice);
 						choices.add(jumpChoice);
 						System.out.println("--From " + positionLanded + ", can jump to position: " + destination);
 						choices.addAll(generateBonusChoices(sizeOfFormation, color, destination, jumpChoice, true, slided));
@@ -382,8 +399,11 @@ public class Game {
 		@Override
 		public void execute() {
 			AirplaneFormation formation = hanger.launchPlaneFromRunway();
-			board.addFormation(formation, formation.getColor().getSpawn());
-			new MoveAction(formation, destination, nextAction).execute();
+			int spawnPoint = formation.getColor().getSpawn();
+			board.addFormation(formation, spawnPoint);
+			if (spawnPoint != destination) {
+				new MoveAction(formation, destination, nextAction).execute();
+			}
 		}
 	}
 	
@@ -401,9 +421,17 @@ public class Game {
 		
 		@Override
 		public void execute() {
-			board.moveFormation(formation, destination);
 			if (nextAction != null) {
+				board.moveFormation(formation, destination);
 				nextAction.execute(formation);
+			} else {
+				AirplaneFormation formationAtThatSpot = board.getFormations(destination, formation.getColor());
+				if (formationAtThatSpot != null) {
+					board.removeFormation(formation);
+					formation.combineWithOtherFormation(formationAtThatSpot);
+				} else {
+					board.moveFormation(formation, destination);
+				}
 			}
 		}
 		
