@@ -114,7 +114,9 @@ public class Game {
 	private Choice latestChoice;
 	
 	public Game() {
-		randomGenerator = new Random();
+		long seed = System.nanoTime();
+		System.out.println("Random seed: " + seed);
+		randomGenerator = new Random(seed);
 		newGame();
 	}
 	

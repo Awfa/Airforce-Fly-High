@@ -11,23 +11,17 @@ import java.util.Map;
 import java.util.Set;
 
 import com.badlogic.gdx.scenes.scene2d.Group;
-import com.badlogic.gdx.scenes.scene2d.actions.MoveToAction;
-import com.badlogic.gdx.scenes.scene2d.actions.RotateByAction;
-import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Align;
 import com.haanthony.Choice.ChoiceType;
 import com.haanthony.Game.GameColor;
 
 public class BoardRenderManager {
-	public static final float FLY_SPEED = 700.f;
-	public static final float SPIN_SPEED = 500.f;
-	
 	private List<ImmutablePoint2> boardPositions;
 	private Map<GameColor, HangerRenderManager> hangerRenderManagers;
 	private Group renderGroup;
 	
-	private Map<GameColor, List<Set<Image>>> positionLists;
+	private Map<GameColor, List<Set<AirplaneSprite>>> positionLists;
 	
 	public BoardRenderManager() {
 		boardPositions = AssetLoader.getInstance().getFourPlayerBoardCoordinates();
@@ -45,16 +39,19 @@ public class BoardRenderManager {
 			for (int i = 0; i < Game.NUMBER_OF_AIRPLANES_PER_PLAYER; ++i) {
 				Image plane =  new Image(AssetLoader.getInstance().getAirplaneSprite(color));
 				plane.setOrigin(Align.center);
-				hangerRenderManagers.get(color).addPlane(plane);
-				renderGroup.addActor(plane);
+				plane.setPosition(1030.f/2, 1030.f/2);
+				
+				AirplaneSprite sprite = new AirplaneSprite(plane);
+				hangerRenderManagers.get(color).addPlane(sprite);
+				renderGroup.addActor(sprite);
 			}
 		}
 		
-		positionLists = new EnumMap<GameColor, List<Set<Image>>>(GameColor.class);
+		positionLists = new EnumMap<GameColor, List<Set<AirplaneSprite>>>(GameColor.class);
 		for (GameColor color : GameColor.values()) {
-			List<Set<Image>> positionList = new ArrayList<Set<Image>>(boardPositions.size());
+			List<Set<AirplaneSprite>> positionList = new ArrayList<Set<AirplaneSprite>>(boardPositions.size());
 			for (int i = 0; i < boardPositions.size(); ++i) {
-				positionList.add(new HashSet<Image>());
+				positionList.add(new HashSet<AirplaneSprite>());
 			}
 			
 			positionLists.put(color, positionList);
@@ -81,7 +78,7 @@ public class BoardRenderManager {
 			break;
 			
 		case LAUNCH_PLANE_FROM_RUNWAY:
-			Image planeToLaunch = hangerRenderManagers.get(choice.getColor()).removePlaneFromRunway();
+			AirplaneSprite planeToLaunch = hangerRenderManagers.get(choice.getColor()).removePlaneFromRunway();
 			
 			movePlane(planeToLaunch, choiceStack);
 			break;
@@ -96,10 +93,10 @@ public class BoardRenderManager {
 	}
 	
 	public boolean isDoneRendering() {
-		for (List<Set<Image>> imageLists : positionLists.values()) {
-			for (Set<Image> images : imageLists) {
-				for (Image image : images) {
-					if (image.getActions().size > 0) {
+		for (List<Set<AirplaneSprite>> planeLists : positionLists.values()) {
+			for (Set<AirplaneSprite> planes : planeLists) {
+				for (AirplaneSprite plane : planes) {
+					if (plane.hasActions()) {
 						return false;
 					}
 				}
@@ -115,71 +112,58 @@ public class BoardRenderManager {
 		return true;
 	}
 	
-	private void movePlanes(Set<Image> planes, Deque<Choice> choiceStack) {
-		planes = new HashSet<Image>(planes);
+	private void movePlanes(Iterable<AirplaneSprite> planes, Deque<Choice> choiceStack) {
+		// Update the position lists
+		GameColor color = choiceStack.peek().getColor();
 		
-		for (Image plane : planes) {
-			movePlane(plane, choiceStack);
+		Set<AirplaneSprite> destinationSet = positionLists.get(color).get(choiceStack.peekLast().getDestination());
+		for (AirplaneSprite plane : planes) {
+			destinationSet.add(plane);
 		}
-	}
-	
-	private void movePlane(Image image, Deque<Choice> choiceStack) {
-		GameColor color = choiceStack.peekLast().getColor();
+		
+		Set<AirplaneSprite> originSet = null;
 		if (choiceStack.peek().getType() != ChoiceType.LAUNCH_PLANE_FROM_RUNWAY) {
-			positionLists.get(color).get(choiceStack.peek().getOrigin()).remove(image);
+			originSet = positionLists.get(color).get(choiceStack.peek().getOrigin());
 		}
-		positionLists.get(color).get(choiceStack.peekLast().getDestination()).add(image);
 		
-		float originX = image.getX() + image.getOriginX();
-		float originY = image.getY() + image.getOriginY();
-		float originRotation = image.getRotation();
-		SequenceAction planeMoveAction = new SequenceAction();
-		for (Choice choice : choiceStack) {
-			ImmutablePoint2 destination = boardPositions.get(choice.getDestination());
+		List<ImmutablePoint2> destinations = new ArrayList<>();
+		
+		while(!choiceStack.isEmpty()) {
+			Choice choice = choiceStack.pop();
 			
-			// Spinning
-			float targetAngle = (((float) Math.toDegrees(Math.atan2(originY - destination.y, originX - destination.x))) + 180);
-			float angleDifference = targetAngle - originRotation;
-			while (Math.abs(angleDifference) > 180) {
-				float sign = angleDifference / Math.abs(angleDifference);
-				angleDifference -= sign * 360;
-			}
-			float spinDuration = Math.abs(angleDifference) / SPIN_SPEED;
+			// Make the the destination list for the planes to travel to
+			destinations.add(boardPositions.get(choice.getDestination()));
 			
-			RotateByAction rotationAction = new RotateByAction();
-			rotationAction.setAmount(angleDifference);
-			rotationAction.setDuration(spinDuration);
-			originRotation = targetAngle;
-			
-			// Flying
-			float deltaX = destination.x - originX;
-			float deltaY  = destination.y - originY;
-			float distance = (float) Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-			float flyDuration = distance / FLY_SPEED;
-			
-			MoveToAction flyAction = new MoveToAction();
-			flyAction.setPosition(destination.x, destination.y, Align.center);
-			flyAction.setDuration(flyDuration);
-			originX = destination.x;
-			originY = destination.y;
-			
-			planeMoveAction.addAction(rotationAction);
-			planeMoveAction.addAction(flyAction);
-			
+			// Handle the planes to be taken down
 			for (Integer position : choice.getTakedowns()) {
 				for (GameColor planeColor : GameColor.values()) {
 					if (planeColor != choice.getColor()) {
-						Set<Image> imagesToRemove = new HashSet<Image>(positionLists.get(planeColor).get(position));
-						for (Image imageToRemove : imagesToRemove) {
-							positionLists.get(planeColor).get(position).remove(imageToRemove);
-							hangerRenderManagers.get(planeColor).addPlaneFromBoard(imageToRemove);
+						Set<AirplaneSprite> planesToRemove = new HashSet<AirplaneSprite>(positionLists.get(planeColor).get(position));
+						for (AirplaneSprite planeToRemove : planesToRemove) {
+							positionLists.get(planeColor).get(position).remove(planeToRemove);
+							hangerRenderManagers.get(planeColor).addPlaneFromBoard(planeToRemove);
 						}
 					}
 				}
 			}
 		}
 		
-		image.addAction(planeMoveAction);
+		// Make every plane move according to their destination list
+		for (AirplaneSprite plane : planes) {
+			plane.moveToPoints(destinations);
+		}
+		
+		// Clear the origin set now that we worked with all the planes
+		if (originSet != null) {
+			originSet.clear();
+		}
+	}
+	
+	private void movePlane(AirplaneSprite plane, Deque<Choice> choiceStack) {
+		Set<AirplaneSprite> planes = new HashSet<>();
+		planes.add(plane);
+		
+		movePlanes(planes, choiceStack);
 	}
 	
 	public Group getRenderGroup() {

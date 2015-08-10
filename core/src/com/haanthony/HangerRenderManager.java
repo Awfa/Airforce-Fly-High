@@ -4,67 +4,37 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
 
-import com.badlogic.gdx.scenes.scene2d.actions.MoveToAction;
-import com.badlogic.gdx.scenes.scene2d.actions.RotateByAction;
-import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.utils.Align;
-
 public class HangerRenderManager {
 	public static final float AIRPLANE_SHUFFLE_DURATION = 0.1f;
 	
 	private List<ImmutablePoint2> spawnPoints;
 	
-	private Queue<Image> hangerPlanes;
-	private Queue<Image> runwayPlanes;
+	private Queue<AirplaneSprite> hangerPlanes;
+	private Queue<AirplaneSprite> runwayPlanes;
 	
 	public HangerRenderManager(List<ImmutablePoint2> spawnPoints) {
 		this.spawnPoints = spawnPoints;
 		
-		hangerPlanes = new ArrayDeque<Image>();
-		runwayPlanes = new ArrayDeque<Image>();
+		hangerPlanes = new ArrayDeque<AirplaneSprite>();
+		runwayPlanes = new ArrayDeque<AirplaneSprite>();
 	}
 	
-	public void addPlane(Image plane) {
+	public void addPlane(AirplaneSprite plane) {
 		if (hangerPlanes.size() == 4) {
 			throw new IllegalStateException("Hanger Render Manager to full to add a plane to the runway");
 		}
 		
 		ImmutablePoint2 position = spawnPoints.get(hangerPlanes.size());
-		plane.setPosition(position.x, position.y, Align.center);
+		plane.moveToPoint(position);
 		hangerPlanes.add(plane);
 	}
 	
-	public void addPlaneFromBoard(Image plane) {
+	public void addPlaneFromBoard(AirplaneSprite plane) {
 		if (hangerPlanes.size() == 4) {
 			throw new IllegalStateException("Hanger Render Manager to full to add a plane to the runway");
 		}
 		
-		SequenceAction moveActionToHanger = new SequenceAction();
-		ImmutablePoint2 position = spawnPoints.get(hangerPlanes.size());
-
-		float originX = plane.getX() + plane.getOriginX();
-		float originY = plane.getY() + plane.getOriginY();
-		
-		float targetAngle = (((float) Math.toDegrees(Math.atan2(originY - position.y, originX - position.x))) + 180);
-		float angleDifference = targetAngle - plane.getRotation();
-		while (Math.abs(angleDifference) > 180) {
-			float sign = angleDifference / Math.abs(angleDifference);
-			angleDifference -= sign * 360;
-		}
-		float spinDuration = Math.abs(angleDifference) / BoardRenderManager.SPIN_SPEED;
-		
-		RotateByAction rotationAction = new RotateByAction();
-		rotationAction.setAmount(angleDifference);
-		rotationAction.setDuration(spinDuration);
-		
-		MoveToAction flyAction = new MoveToAction();
-		flyAction.setPosition(position.x, position.y, Align.center);
-		flyAction.setDuration(AIRPLANE_SHUFFLE_DURATION * 3);
-		
-		moveActionToHanger.addAction(rotationAction);
-		moveActionToHanger.addAction(flyAction);
-		plane.addAction(moveActionToHanger);
+		plane.moveToPoint(spawnPoints.get(hangerPlanes.size()));
 		hangerPlanes.add(plane);
 	}
 	
@@ -73,30 +43,20 @@ public class HangerRenderManager {
 			throw new IllegalStateException("No planes in hanger to move");
 		}
 		
-		ImmutablePoint2 position = spawnPoints.get(spawnPoints.size() - 1);
-		
-		Image planeToMove = hangerPlanes.remove();
+		AirplaneSprite planeToMove = hangerPlanes.remove();
 		runwayPlanes.add(planeToMove);
-		
-		MoveToAction moveActionToRunway = new MoveToAction();
-		moveActionToRunway.setPosition(position.x, position.y, Align.center);
-		moveActionToRunway.setDuration(AIRPLANE_SHUFFLE_DURATION);
-		planeToMove.addAction(moveActionToRunway);
+		planeToMove.moveToPoint(spawnPoints.get(spawnPoints.size() - 1));
 		
 		for (int i = 0; i < hangerPlanes.size(); ++i) {
-			Image planeToShuffle = hangerPlanes.remove();
+			AirplaneSprite planeToShuffle = hangerPlanes.remove();
 			
-			MoveToAction moveActionToNewHangerSpot = new MoveToAction();
-			moveActionToNewHangerSpot.setPosition(spawnPoints.get(i).x, spawnPoints.get(i).y, Align.center);
-			moveActionToNewHangerSpot.setDuration(AIRPLANE_SHUFFLE_DURATION);
-			
-			planeToShuffle.addAction(moveActionToNewHangerSpot);
+			planeToShuffle.moveToPoint(spawnPoints.get(i));
 			
 			hangerPlanes.add(planeToShuffle);
 		}
 	}
 	
-	public Image removePlaneFromRunway() {
+	public AirplaneSprite removePlaneFromRunway() {
 		if (runwayPlanes.size() == 0) {
 			throw new IllegalStateException("No planes to remove from runway");
 		}
@@ -105,14 +65,14 @@ public class HangerRenderManager {
 	}
 	
 	public boolean isDoneRendering() {
-		for (Image image : hangerPlanes) {
-			if (image.getActions().size > 0) {
+		for (AirplaneSprite plane : hangerPlanes) {
+			if (plane.hasActions()) {
 				return false;
 			}
 		}
 		
-		for (Image image : runwayPlanes) {
-			if (image.getActions().size > 0) {
+		for (AirplaneSprite plane : runwayPlanes) {
+			if (plane.hasActions()) {
 				return false;
 			}
 		}
