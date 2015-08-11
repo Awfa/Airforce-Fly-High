@@ -1,6 +1,7 @@
 package com.haanthony;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import com.haanthony.Game.GameColor;
@@ -35,20 +36,21 @@ public class Choice {
 	private final GameColor color;
 	
 	private final Set<Integer> takedowns;
+	private final List<Integer> route;
 	
 	public Choice(ChoiceType type, GameColor color) {
-		this(type, color, DEFAULT_INVALID_POSITION, null);
+		this(type, color, DEFAULT_INVALID_POSITION, null, null);
 	}
 	
-	public Choice(ChoiceType type, GameColor color, int destination, Set<Integer> takedowns) {
-		this(type, color, destination, takedowns, DEFAULT_INVALID_POSITION);
+	public Choice(ChoiceType type, GameColor color, int destination, Set<Integer> takedowns, List<Integer> route) {
+		this(type, color, destination, takedowns, route, DEFAULT_INVALID_POSITION);
 	}
 	
-	public Choice(ChoiceType type, GameColor color, int destination, Set<Integer> takedowns, int origin) {
-		this(type, color, destination, takedowns, origin, null);
+	public Choice(ChoiceType type, GameColor color, int destination, Set<Integer> takedowns, List<Integer> route, int origin) {
+		this(type, color, destination, takedowns, route, origin, null);
 	}
 	
-	public Choice(ChoiceType type, GameColor color, int destination, Set<Integer> takedowns, int origin, Choice parentChoice) {
+	public Choice(ChoiceType type, GameColor color, int destination, Set<Integer> takedowns, List<Integer> route, int origin, Choice parentChoice) {
 		if (destination != DEFAULT_INVALID_POSITION && type == ChoiceType.MOVE_PLANE_TO_RUNWAY) {
 			throw new IllegalArgumentException("Type " + type + " can not have a destination");
 		}
@@ -59,11 +61,19 @@ public class Choice {
 		
 		this.type = type;
 		this.destination = destination;
+		
 		if (takedowns != null) {
 			this.takedowns = Collections.unmodifiableSet(takedowns);
 		} else {
 			this.takedowns = null;
 		}
+		
+		if (route != null) {
+			this.route = Collections.unmodifiableList(route);
+		} else {
+			this.route = null;
+		}
+		
 		this.origin = origin;
 		this.parentChoice = parentChoice;
 		this.color = color;
@@ -102,6 +112,10 @@ public class Choice {
 	
 	public Set<Integer> getTakedowns() {
 		return takedowns;
+	}
+	
+	public List<Integer> getRoute() {
+		return route;
 	}
 	
 	public int getOrigin() {

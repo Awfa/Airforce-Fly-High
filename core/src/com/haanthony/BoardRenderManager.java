@@ -132,7 +132,13 @@ public class BoardRenderManager {
 			Choice choice = choiceStack.pop();
 			
 			// Make the the destination list for the planes to travel to
-			destinations.add(boardPositions.get(choice.getDestination()));
+			
+			for (int routePath : choice.getRoute()) {
+				destinations.add(boardPositions.get(routePath));
+			}
+			if (choice.getRoute().isEmpty()) {
+				destinations.add(boardPositions.get(choice.getDestination()));
+			}
 			
 			// Handle the planes to be taken down
 			for (Integer position : choice.getTakedowns()) {

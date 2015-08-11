@@ -1,9 +1,11 @@
 package com.haanthony;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -208,9 +210,11 @@ public class Game {
 				// We subtract 1 from the dice roll because moving from the runway to inflight takes one move.
 				// and formation size is one since when a plane takes off it's a formation of 1
 				Set<Integer> takedowns = new HashSet<Integer>();
-				int destination = raycastDestination(1, color, color.getSpawn(), diceRoll - 1, takedowns);
+				List<Integer> route = new ArrayList<Integer>();
+				// TODO: Fix possible bug here - Perhaps this makes it so that when planes spawn they don't take down the person on their spawn square?
+				int destination = raycastDestination(1, color, color.getSpawn(), diceRoll - 1, takedowns, route, false);
 				
-				Choice liftoffChoice = new Choice(ChoiceType.LAUNCH_PLANE_FROM_RUNWAY, color, destination, takedowns);
+				Choice liftoffChoice = new Choice(ChoiceType.LAUNCH_PLANE_FROM_RUNWAY, color, destination, takedowns, route);
 				choices.add(liftoffChoice);
 				System.out.println("-Can liftoff a plane from the runway to position: " + destination);
 				choices.addAll(generateBonusChoices(1, color, destination, liftoffChoice));
@@ -223,10 +227,11 @@ public class Game {
 				
 				if (currentPosition != color.getHome()) {
 					Set<Integer> takedowns = new HashSet<Integer>();
-					int destination = raycastDestination(formation.getSize(), color, currentPosition, diceRoll, takedowns);
+					List<Integer> route = new ArrayList<Integer>();
+					int destination = raycastDestination(formation.getSize(), color, currentPosition, diceRoll, takedowns, route, false);
 					
 					if (destination != currentPosition) {
-						Choice flyChoice = new Choice(ChoiceType.FLY, color, destination, takedowns, currentPosition);
+						Choice flyChoice = new Choice(ChoiceType.FLY, color, destination, takedowns, route, currentPosition);
 						choices.add(flyChoice);
 						System.out.println("-Can fly plane formation from " + currentPosition + " to " + destination);
 						choices.addAll(generateBonusChoices(formation.getSize(), color, destination, flyChoice));
@@ -264,8 +269,13 @@ public class Game {
 					
 					if (obstacleSize <= sizeOfFormation) {
 						Set<Integer> takedowns = new HashSet<Integer>();
+						takedowns.add(color.getSlideStart());
 						takedowns.add(color.getSlideCross());
-						Choice slideChoice = new Choice(ChoiceType.SLIDE, color, color.getSlideEnd(), takedowns, positionLanded, choice);
+						
+						List<Integer> route = new ArrayList<Integer>();
+						route.add(color.getSlideEnd());
+
+						Choice slideChoice = new Choice(ChoiceType.SLIDE, color, color.getSlideEnd(), takedowns, route, positionLanded, choice);
 						choices.add(slideChoice);
 						System.out.println("--From " + positionLanded + ", can slide to position: " + colorOfPoint.getSlideEnd());
 						choices.addAll(generateBonusChoices(sizeOfFormation, color, color.getSlideEnd(), slideChoice, jumped, true));
@@ -274,10 +284,15 @@ public class Game {
 				
 				if (!jumped && positionLanded != colorOfPoint.getExit()) {
 					Set<Integer> takedowns = new HashSet<Integer>();
+					
 					int destination = raycastDestination(sizeOfFormation, color,
-							positionLanded, 4, takedowns);
+							positionLanded, 4, takedowns, null, true);
+					
+					List<Integer> route = new ArrayList<Integer>();
+					route.add(destination);
+					
 					if (destination != positionLanded) {
-						Choice jumpChoice = new Choice(ChoiceType.JUMP, color, destination, takedowns, positionLanded, choice);
+						Choice jumpChoice = new Choice(ChoiceType.JUMP, color, destination, takedowns, route, positionLanded, choice);
 						choices.add(jumpChoice);
 						System.out.println("--From " + positionLanded + ", can jump to position: " + destination);
 						choices.addAll(generateBonusChoices(sizeOfFormation, color, destination, jumpChoice, true, slided));
@@ -322,7 +337,8 @@ public class Game {
 	}
 	
 	// This method returns the farthest destination from the start position to the given displacement for the given formation size and color
-	private int raycastDestination(int sizeOfFormation, GameColor color, int startPosition, int displacement, Set<Integer> takedowns) {
+	private int raycastDestination(int sizeOfFormation, GameColor color, int startPosition, int displacement,
+			Set<Integer> takedowns, List<Integer> route, boolean includeStart) {
 		// find the closest obstacle by advancing until we find an obstacle
 		int ray = startPosition;
 		int rayDisplacement = 1;
@@ -335,10 +351,8 @@ public class Game {
 				// We check the size against one because freshly lifted off formations start at size 1
 				if (possibleObstacle.getSize() > sizeOfFormation) {
 					obstacleFound = true;
-				} else {
-					if (ray != startPosition) {
-						takedowns.add(ray);
-					}
+				} else if (includeStart || ray != startPosition) {
+					takedowns.add(ray);
 				}
 			}
 			
@@ -360,6 +374,9 @@ public class Game {
 					if (ray < color.getExitDest()) {
 						throw new AssertionError("Traced ray went backwards out of the exit!?");
 					}
+				}
+				if (route != null) {
+					route.add(ray);
 				}
 			}
 			
