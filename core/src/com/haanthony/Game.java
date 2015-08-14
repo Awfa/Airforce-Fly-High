@@ -211,8 +211,13 @@ public class Game {
 				// and formation size is one since when a plane takes off it's a formation of 1
 				Set<Integer> takedowns = new HashSet<Integer>();
 				List<Integer> route = new ArrayList<Integer>();
-				// TODO: Fix possible bug here - Perhaps this makes it so that when planes spawn they don't take down the person on their spawn square?
+				
 				int destination = raycastDestination(1, color, color.getSpawn(), diceRoll - 1, takedowns, route, false);
+				
+				// Make it so that planes can take out planes that are sitting on their spawn square if they pass them
+				if (destination != color.getSpawn()) {
+					takedowns.add(color.getSpawn());
+				}
 				
 				Choice liftoffChoice = new Choice(ChoiceType.LAUNCH_PLANE_FROM_RUNWAY, color, destination, takedowns, route);
 				choices.add(liftoffChoice);
@@ -230,7 +235,7 @@ public class Game {
 					List<Integer> route = new ArrayList<Integer>();
 					int destination = raycastDestination(formation.getSize(), color, currentPosition, diceRoll, takedowns, route, false);
 					
-					if (destination != currentPosition) {
+					if (!route.isEmpty()) {
 						Choice flyChoice = new Choice(ChoiceType.FLY, color, destination, takedowns, route, currentPosition);
 						choices.add(flyChoice);
 						System.out.println("-Can fly plane formation from " + currentPosition + " to " + destination);
@@ -463,7 +468,7 @@ public class Game {
 				nextAction.execute(formation);
 			} else {
 				AirplaneFormation formationAtThatSpot = board.getFormations(destination, formation.getColor());
-				if (formationAtThatSpot != null) {
+				if (formationAtThatSpot != null && formationAtThatSpot != formation) {
 					board.removeFormation(formation);
 					formation.combineWithOtherFormation(formationAtThatSpot);
 				} else {
