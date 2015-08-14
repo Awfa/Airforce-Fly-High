@@ -23,6 +23,12 @@ public class BoardRenderManager {
 	
 	private Map<GameColor, List<Set<AirplaneSprite>>> positionLists;
 	
+	private DiceRenderer diceRenderer;
+	private Choice choiceToProcess;
+	private boolean timeToProcess;
+	private boolean diceRolled;
+	private int diceRoll;
+	
 	public BoardRenderManager() {
 		boardPositions = AssetLoader.getInstance().getFourPlayerBoardCoordinates();
 		
@@ -57,15 +63,39 @@ public class BoardRenderManager {
 			positionLists.put(color, positionList);
 		}
 		
+		diceRenderer = new DiceRenderer(renderGroup, 1086.f/2, 1086.f/2);
+		diceRolled = false;
+		timeToProcess = false;
 	}
 	
-	public void processChoice(Choice choice) {
+	public void update(float deltaTime) {
+		// Show dice roll first before animating planes to move
+		diceRenderer.update(deltaTime);
+		if (timeToProcess) {
+			if (!diceRolled) {
+				diceRenderer.startDiceRollToNumber(diceRoll);
+				diceRolled = true;
+			} else if (diceRenderer.isDoneRendering()) {
+				processChoice();
+				timeToProcess = false;
+				diceRolled = false;
+			}
+		}
+	}
+	
+	public void processChoice(GameInfo info) {
+		choiceToProcess = info.getLastChoice();
+		diceRoll = info.getLastDiceRoll();
+		timeToProcess = true;
+	}
+	
+	private void processChoice() {
 		Deque<Choice> choiceStack = new ArrayDeque<Choice>();
 		
-		if (choice == null) {
+		if (choiceToProcess == null) {
 			throw new NullPointerException();
 		}
-		Choice currentChoice = choice;
+		Choice currentChoice = choiceToProcess;
 		choiceStack.push(currentChoice);
 		while (currentChoice.getParentChoice() != null) {
 			currentChoice = currentChoice.getParentChoice();
@@ -74,22 +104,24 @@ public class BoardRenderManager {
 		
 		switch (currentChoice.getType()) {
 		case MOVE_PLANE_TO_RUNWAY:
-			hangerRenderManagers.get(choice.getColor()).movePlaneToRunway();
+			hangerRenderManagers.get(choiceToProcess.getColor()).movePlaneToRunway();
 			break;
 			
 		case LAUNCH_PLANE_FROM_RUNWAY:
-			AirplaneSprite planeToLaunch = hangerRenderManagers.get(choice.getColor()).removePlaneFromRunway();
+			AirplaneSprite planeToLaunch = hangerRenderManagers.get(choiceToProcess.getColor()).removePlaneFromRunway();
 			
 			movePlane(planeToLaunch, choiceStack);
 			break;
 			
 		case FLY:
-			movePlanes(positionLists.get(choice.getColor()).get(currentChoice.getOrigin()), choiceStack);
+			movePlanes(positionLists.get(choiceToProcess.getColor()).get(currentChoice.getOrigin()), choiceStack);
 			break;
 			
 		default:
 			break;
 		}
+		
+		timeToProcess = false;
 	}
 	
 	public boolean isDoneRendering() {
@@ -109,9 +141,10 @@ public class BoardRenderManager {
 			}
 		}
 		
-		return true;
+		return diceRenderer.isDoneRendering();
 	}
 	
+	// TODO: Fix bug that if airplane on homerow lands on the spot it current is on, it will no longer animate
 	private void movePlanes(Iterable<AirplaneSprite> planes, Deque<Choice> choiceStack) {
 		// Update the position lists
 		GameColor color = choiceStack.peek().getColor();
@@ -174,5 +207,9 @@ public class BoardRenderManager {
 	
 	public Group getRenderGroup() {
 		return renderGroup;
+	}
+
+	public void showDiceRoll(int diceRoll) {
+		diceRenderer.startDiceRollToNumber(diceRoll);
 	}
 }

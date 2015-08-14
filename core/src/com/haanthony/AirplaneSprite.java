@@ -16,7 +16,7 @@ public class AirplaneSprite extends Actor {
 	public static final float FLY_SPEED = 700.f;
 	public static final float SPIN_SPEED = 500.f;
 	
-	public static final Interpolation FLY_INTERPOLATION = Interpolation.exp10;
+	public static final Interpolation FLY_INTERPOLATION = Interpolation.linear;
 	public static final Interpolation SPIN_INTERPOLATION = Interpolation.linear;
 	
 	private Image airplane;

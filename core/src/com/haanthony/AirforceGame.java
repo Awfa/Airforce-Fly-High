@@ -31,10 +31,10 @@ public class AirforceGame extends ApplicationAdapter {
 
 	@Override
 	public void render() {
-		Gdx.gl.glClearColor(1, 0, 0, 1);
+		Gdx.gl.glClearColor(1, 1, 1, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		
-		human.update();
+		human.update(Gdx.graphics.getDeltaTime());
 		manager.update();
 		stage.act(Gdx.graphics.getDeltaTime());
 		stage.draw();

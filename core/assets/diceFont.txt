@@ -1,0 +1,11 @@
+info face=diceFont size=72 bold=0 italic=0 charset= unicode= stretchH=100 smooth=1 aa=1 padding=2,2,2,2 spacing=0,0 outline=0
+common lineHeight=84 base=54 scaleW=316 scaleH=80 pages=1 packed=0
+page id=0 file="diceFont.png"
+chars count=6
+char id=49 x=2 y=2 width=39 height=73 xoffset=4 yoffset=2 xadvance=40 page=0 chnl=15
+char id=50 x=43 y=2 width=51 height=76 xoffset=-1 yoffset=0 xadvance=40 page=0 chnl=15
+char id=51 x=96 y=2 width=51 height=76 xoffset=0 yoffset=0 xadvance=40 page=0 chnl=15
+char id=52 x=149 y=2 width=56 height=73 xoffset=-3 yoffset=2 xadvance=40 page=0 chnl=15
+char id=53 x=207 y=2 width=51 height=76 xoffset=1 yoffset=0 xadvance=40 page=0 chnl=15
+char id=54 x=260 y=2 width=54 height=76 xoffset=-1 yoffset=0 xadvance=40 page=0 chnl=15
+char id=32 x=0 y=0 width=0 height=0 xoffset=-1 yoffset=0 xadvance=19 page=0 chnl=15

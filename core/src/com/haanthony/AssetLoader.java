@@ -10,6 +10,7 @@ import java.util.Scanner;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.haanthony.Game.GameColor;
 
 public class AssetLoader {
@@ -21,6 +22,8 @@ public class AssetLoader {
 	private Map<GameColor, Texture> airplaneSprites;
 	
 	private Texture choiceDot;
+
+	private BitmapFont diceFont;
 	
 	public static AssetLoader getInstance() {
 		if (assetLoader == null) {
@@ -34,8 +37,9 @@ public class AssetLoader {
 		loadFourPlayerBoard("airforceflyhigh.png");
 		loadFourPlayerBoardCoordinates("boardCoordinates.txt");
 		loadSpawnPointCoordinates("spawnPoints.txt");
-		loadAirplaneSprites("blueplane.png", "greenplane.png", "redplane.png", "yellowplane.png");
+		loadAirplaneSprites("blueplanenodoge.png", "greenplanenodoge.png", "redplanenodoge.png", "yellowplanenodoge.png");
 		loadChoiceDot("choiceDot.png");
+		loadDiceFont("diceFont.txt");
 	}
 
 	private void loadFourPlayerBoard(String location) {
@@ -98,6 +102,11 @@ public class AssetLoader {
 		choiceDot.setFilter(TextureFilter.Linear, TextureFilter.Nearest);
 	}
 	
+	private void loadDiceFont(String diceFontLocation) {
+		diceFont = new BitmapFont(Gdx.files.internal(diceFontLocation));
+		diceFont.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Nearest);
+	}
+	
 	public Texture getFourPlayerBoard() {
 		return fourPlayerBoard;
 	}
@@ -116,5 +125,9 @@ public class AssetLoader {
 	
 	public Texture getChoiceDot() {
 		return choiceDot;
+	}
+
+	public BitmapFont getDiceFont() {
+		return diceFont;
 	}
 }

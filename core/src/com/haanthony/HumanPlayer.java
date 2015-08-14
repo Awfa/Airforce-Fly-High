@@ -8,28 +8,31 @@ public class HumanPlayer implements Player {
 	private GameInfo latestGameInfo;
 	private GameManager manager;
 	
-	private BoardRenderManager renderManager;
+	private BoardRenderManager boardRenderManager;
 	private ChoicesRenderer choicesRenderer;
 	
 	public HumanPlayer() {
-		renderManager = new BoardRenderManager();
+		boardRenderManager = new BoardRenderManager();
 	}
 	
 	@Override
 	public void setGameManager(GameManager gameManager) {
 		manager = gameManager;
-		choicesRenderer = new ChoicesRenderer(renderManager.getRenderGroup(), manager);
+		choicesRenderer = new ChoicesRenderer(boardRenderManager.getRenderGroup(), manager);
 	}
 	
 	public Group getRenderGroup() {
-		return renderManager.getRenderGroup();
+		return boardRenderManager.getRenderGroup();
 	}
 	
 	@Override
 	public void updateGameInfo(GameInfo info) {
 		Choice lastChoice = info.getLastChoice();
+		
 		if (latestGameInfo != null && latestGameInfo.getLastChoice() != lastChoice && lastChoice != null) {
-			renderManager.processChoice(lastChoice);
+			boardRenderManager.processChoice(info);
+		} else {
+			boardRenderManager.showDiceRoll(info.getLastDiceRoll());
 		}
 		
 		latestGameInfo = info;
@@ -38,10 +41,15 @@ public class HumanPlayer implements Player {
 	@Override
 	public void updateChoices(Set<Choice> choices) {
 		choicesRenderer.renderChoices(choices);
+		for (Choice choice : choices) {
+			//manager.playChoice(choice);
+			break;
+		}
 	}
 	
-	public void update() {
-		if (manager != null && renderManager.isDoneRendering()) {
+	public void update(float deltaTime) {
+		boardRenderManager.update(deltaTime);
+		if (manager != null && boardRenderManager.isDoneRendering()) {
 			manager.readyPlayer(this);
 		}
 	}
