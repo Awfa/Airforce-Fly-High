@@ -37,7 +37,7 @@ public class AssetLoader {
 		loadFourPlayerBoard("airforceflyhigh.png");
 		loadFourPlayerBoardCoordinates("boardCoordinates.txt");
 		loadSpawnPointCoordinates("spawnPoints.txt");
-		loadAirplaneSprites("blueplanenodoge.png", "greenplanenodoge.png", "redplanenodoge.png", "yellowplanenodoge.png");
+		loadAirplaneSprites("blueplane.png", "greenplane.png", "redplane.png", "yellowplane.png");
 		loadChoiceDot("choiceDot.png");
 		loadDiceFont("diceFont.txt");
 	}
