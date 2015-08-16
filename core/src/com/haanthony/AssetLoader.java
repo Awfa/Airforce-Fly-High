@@ -8,10 +8,12 @@ import java.util.Map;
 import java.util.Scanner;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.haanthony.Game.GameColor;
+import com.haanthony.TurnIndicator.Direction;
 
 public class AssetLoader {
 	private static AssetLoader assetLoader;
@@ -24,6 +26,15 @@ public class AssetLoader {
 	private Texture choiceDot;
 
 	private BitmapFont diceFont;
+	
+	private Texture turnIndicatorCircle;
+	private Texture turnIndicatorArrow;
+
+	private Map<Direction, ImmutablePoint2> turnIndicatorClipPoints;
+	private int turnIndicatorClipWidth;
+
+	private Map<GameColor, Direction> turnIndicatorColorDirections;
+	private Map<GameColor, Color> colors;
 	
 	public static AssetLoader getInstance() {
 		if (assetLoader == null) {
@@ -40,6 +51,8 @@ public class AssetLoader {
 		loadAirplaneSprites("blueplane.png", "greenplane.png", "redplane.png", "yellowplane.png");
 		loadChoiceDot("choiceDot.png");
 		loadDiceFont("diceFont.txt");
+		loadTurnIndicators("turnIndicatorCircle.png", "turnIndicatorArrow.png", "turnIndicatorClipPoints.txt", "turnIndicatorColorDirections.txt");
+		loadColors("colors.txt");
 	}
 
 	private void loadFourPlayerBoard(String location) {
@@ -107,6 +120,39 @@ public class AssetLoader {
 		diceFont.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Nearest);
 	}
 	
+	private void loadTurnIndicators(String locationForCircle, String locationForArrow, String locationForClipPoints, String colorDirectionsLocation) {
+		turnIndicatorCircle = new Texture(Gdx.files.internal(locationForCircle));
+		turnIndicatorArrow = new Texture(Gdx.files.internal(locationForArrow));
+		
+		turnIndicatorCircle.setFilter(TextureFilter.Linear, TextureFilter.Nearest);
+		turnIndicatorArrow.setFilter(TextureFilter.Linear, TextureFilter.Nearest);
+		
+		turnIndicatorClipPoints = new EnumMap<Direction, ImmutablePoint2>(Direction.class);
+		Scanner scanner = new Scanner(Gdx.files.internal(locationForClipPoints).reader());
+		turnIndicatorClipWidth = scanner.nextInt();
+		while (scanner.hasNext()) {
+			Direction direction = Direction.valueOf(scanner.next());
+			turnIndicatorClipPoints.put(direction, new ImmutablePoint2(scanner.nextInt(), scanner.nextInt()));
+		}
+		scanner.close();
+		
+		turnIndicatorColorDirections = new EnumMap<GameColor, Direction>(GameColor.class);
+		scanner = new Scanner(Gdx.files.internal(colorDirectionsLocation).reader());
+		while (scanner.hasNext()) {
+			turnIndicatorColorDirections.put(GameColor.valueOf(scanner.next()), Direction.valueOf(scanner.next()));
+		}
+		scanner.close();
+	}
+	
+	private void loadColors(String colorsLocation) {
+		colors = new EnumMap<>(GameColor.class);
+		Scanner scanner = new Scanner(Gdx.files.internal(colorsLocation).reader());
+		while (scanner.hasNext()) {
+			colors.put(GameColor.valueOf(scanner.next()), new Color(scanner.nextFloat(), scanner.nextFloat(), scanner.nextFloat(), 1.f));
+		}
+		scanner.close();
+	}
+	
 	public Texture getFourPlayerBoard() {
 		return fourPlayerBoard;
 	}
@@ -129,5 +175,29 @@ public class AssetLoader {
 
 	public BitmapFont getDiceFont() {
 		return diceFont;
+	}
+	
+	public Texture getTurnIndicatorCircle() {
+		return turnIndicatorCircle;
+	}
+	
+	public Texture getTurnIndicatorArrow() {
+		return turnIndicatorArrow;
+	}
+	
+	public ImmutablePoint2 getClipPoint(Direction direction) {
+		return turnIndicatorClipPoints.get(direction);
+	}
+	
+	public int getClipWidth() {
+		return turnIndicatorClipWidth;
+	}
+	
+	public Map<GameColor, Direction> getColorDirections() {
+		return turnIndicatorColorDirections;
+	}
+	
+	public Map<GameColor, Color> getColors() {
+		return colors;
 	}
 }

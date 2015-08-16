@@ -10,15 +10,20 @@ public class HumanPlayer implements Player {
 	
 	private BoardRenderManager boardRenderManager;
 	private ChoicesRenderer choicesRenderer;
+	private TurnIndicatorRenderer turnIndicatorRenderer;
 	
 	public HumanPlayer() {
 		boardRenderManager = new BoardRenderManager();
+		turnIndicatorRenderer = new TurnIndicatorRenderer(1086/2,1086/2);
 	}
 	
 	@Override
 	public void setGameManager(GameManager gameManager) {
 		manager = gameManager;
 		choicesRenderer = new ChoicesRenderer(boardRenderManager.getRenderGroup(), manager);
+		turnIndicatorRenderer.spinTo(manager.getCurrentPlayerColor());
+		boardRenderManager.getRenderGroup().addActor(turnIndicatorRenderer.getRenderGroup());
+		turnIndicatorRenderer.getRenderGroup().toBack();
 	}
 	
 	public Group getRenderGroup() {
@@ -36,6 +41,7 @@ public class HumanPlayer implements Player {
 		}
 		
 		latestGameInfo = info;
+		turnIndicatorRenderer.spinTo(manager.getCurrentPlayerColor());
 	}
 	
 	@Override

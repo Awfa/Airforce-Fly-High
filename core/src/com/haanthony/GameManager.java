@@ -44,8 +44,8 @@ public class GameManager {
 		return players.get(color);
 	}
 	
-	public Player getCurrentPlayer() {
-		return currentPlayer;
+	public GameColor getCurrentPlayerColor() {
+		return game.getTurn();
 	}
 	
 	public void readyPlayer(Player player) {
