@@ -1,28 +1,25 @@
 package com.haanthony;
 
-import java.util.Random;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.scenes.scene2d.Action;
 import com.badlogic.gdx.scenes.scene2d.Group;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
 import com.badlogic.gdx.utils.Align;
 
 public class DiceRenderer {
 	public static final float FLIP_TIME = 0.05f;
-	public static final float HOLD_TIME = 0.5f;
-	public static final float DEFAULT_TIME = 0.2f;
+	public static final float HOLD_TIME = 0.8f;
 	
 	private float x, y;
 	private Label label;
-	private Random random;
 	
 	private float time;
 	private boolean active;
 	private boolean stop;
+	
+	private int diceFace;
 	
 	public DiceRenderer(Group renderGroup, float x, float y) {
 		this.x = x;
@@ -30,12 +27,10 @@ public class DiceRenderer {
 		
 		BitmapFont diceFont = AssetLoader.getInstance().getDiceFont();
 		
-		label = new Label("", new LabelStyle(diceFont, Color.WHITE));
+		label = new Label("1", new LabelStyle(diceFont, Color.WHITE));
 		label.setAlignment(Align.bottom, Align.center);
 		label.setVisible(false);
 		renderGroup.addActor(label);
-		
-		random = new Random();
 		
 		time = 0;
 		active = false;
@@ -60,37 +55,20 @@ public class DiceRenderer {
 		}
 	}
 	
-	public void startDiceRollToNumber(final int number) {
-		startDiceRoll();
-		label.addAction(new Action() {
-			private float timerToStop = 0;
-			private boolean executed = false;
-			
-			@Override
-			public boolean act(float delta) {
-				timerToStop += delta;
-				if (!executed && timerToStop > DEFAULT_TIME) {
-					endDiceRollWithNumber(number);
-					executed = true;
-					return true;
-				}
-				
-				return false;
-			}
-		});
-	}
-	
-	public void startDiceRoll() {
+	public void startDiceRoll(int number) {
 		label.setVisible(true);
 		active = true;
+		diceFace = number;
 	}
 	
-	public void endDiceRollWithNumber(int number) {
-		time = 0;
-		active = false;
-		stop = true;
-		
-		flipDiceTo(number);
+	public void endDiceRoll() {
+		if (active) {
+			time = 0;
+			active = false;
+			stop = true;
+			
+			flipDiceTo(diceFace);
+		}
 	}
 	
 	public boolean isDoneRendering() {
@@ -98,8 +76,11 @@ public class DiceRenderer {
 	}
 	
 	private void flashDice() {
-		int newRandomNumber = random.nextInt(6) + 1;
-		flipDiceTo(newRandomNumber);
+		int newNumber = Integer.valueOf(label.getText().toString()) + 1;
+		if (newNumber == 7) {
+			newNumber = 1;
+		}
+		flipDiceTo(newNumber);
 	}
 	
 	private void flipDiceTo(int number) {

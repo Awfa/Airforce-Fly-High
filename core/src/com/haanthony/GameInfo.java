@@ -1,48 +1,29 @@
 package com.haanthony;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Set;
 
 import com.haanthony.Game.GameColor;
 
 public class GameInfo {
-	private Map<AirplaneFormation, Integer> airplanePositions;
-	private Map<GameColor, Integer> airplanesInHanger;
-	private Map<GameColor, Integer> airplanesOnRunway;
-	private Choice lastChoice;
-	private int lastDiceRoll;
+	private final GameColor color;
+	private final Set<Choice> choices;
+	private final int diceRoll;
 	
-	public GameInfo(Board board, Map<GameColor, Hanger> hangers, Choice lastChoice, int lastDiceRoll) {
-		airplanePositions = board.getAirplaneFormationPositions();
-		
-		airplanesInHanger = new HashMap<GameColor, Integer>();
-		airplanesOnRunway = new HashMap<GameColor, Integer>();
-		for (GameColor color : hangers.keySet()) {
-			airplanesInHanger.put(color, hangers.get(color).getPlanesInHanger());
-			airplanesOnRunway.put(color, hangers.get(color).getPlanesOnRunway());
-		}
-		
-		this.lastChoice = lastChoice;
-		this.lastDiceRoll = lastDiceRoll;
+	public GameInfo(GameColor color, Set<Choice> choices, int diceRoll) {
+		this.color = color;
+		this.choices = choices;
+		this.diceRoll = diceRoll;
+	}
+	
+	public GameColor getPlayerColor() {
+		return color;
 	}
 
-	public Map<AirplaneFormation, Integer> getAirplanePositions() {
-		return airplanePositions;
+	public Set<Choice> getChoices() {
+		return choices;
 	}
 
-	public int getAirplanesInHanger(GameColor hangerColor) {
-		return airplanesInHanger.get(hangerColor);
-	}
-
-	public int getAirplanesOnRunway(GameColor hangerColor) {
-		return airplanesOnRunway.get(hangerColor);
-	}
-
-	public Choice getLastChoice() {
-		return lastChoice;
-	}
-
-	public int getLastDiceRoll() {
-		return lastDiceRoll;
+	public int getDiceRoll() {
+		return diceRoll;
 	}
 }

@@ -13,8 +13,8 @@ public class TurnIndicatorRenderer {
 	private Map<GameColor, TurnIndicator> indicators;
 	private Group renderGroup;
 	
-	private static final float SPIN_DURATION = 0.6f;
-	private static final Interpolation SPIN_INTERPOLATION = Interpolation.exp10Out;
+	private static final float SPIN_DURATION = 0.4f;
+	private static final Interpolation SPIN_INTERPOLATION = Interpolation.elasticOut;
 	
 	private Direction currentDirection = Direction.UP_RIGHT;
 	
@@ -42,9 +42,11 @@ public class TurnIndicatorRenderer {
 	public void spinTo(GameColor color) {
 		currentDirection = AssetLoader.getInstance().getColorDirections().get(color);
 		float direction = currentDirection.getAngle();
+		System.out.println("Turning turn indicator from: " + renderGroup.getRotation() + " to " + direction);
 		
-		if (renderGroup.getRotation() == 0.f && direction == 270.f) {
-			renderGroup.addAction(Actions.sequence(Actions.rotateBy(-90, SPIN_DURATION, SPIN_INTERPOLATION), Actions.rotateTo(270.f)));
+		// This conditional makes sure that the turn indicator always spins clockwise
+		if (renderGroup.getRotation() < direction) {
+			renderGroup.addAction(Actions.sequence(Actions.rotateBy(direction - 360, SPIN_DURATION, SPIN_INTERPOLATION), Actions.rotateTo(direction)));
 		} else {
 			renderGroup.addAction(Actions.rotateTo(direction, SPIN_DURATION, SPIN_INTERPOLATION));
 		}

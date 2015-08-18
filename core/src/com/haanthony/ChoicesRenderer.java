@@ -22,7 +22,6 @@ public class ChoicesRenderer {
 	}
 	
 	public void renderChoices(Set<Choice> choices) {
-		
 		for (final Choice choice : choices) {
 			ImmutablePoint2 position;
 			

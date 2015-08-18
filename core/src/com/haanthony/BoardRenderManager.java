@@ -23,17 +23,21 @@ public class BoardRenderManager {
 	
 	private Map<GameColor, List<Set<AirplaneSprite>>> positionLists;
 	
+	private TurnIndicatorRenderer turnIndicatorRenderer;
 	private DiceRenderer diceRenderer;
-	private Choice choiceToProcess;
-	private boolean timeToProcess;
-	private boolean diceRolled;
-	private int diceRoll;
 	
 	public BoardRenderManager() {
+		Image board = new Image(AssetLoader.getInstance().getFourPlayerBoard());
 		boardPositions = AssetLoader.getInstance().getFourPlayerBoardCoordinates();
 		
+		float middleOfBoardX = board.getX(Align.center);
+		float middleOfBoardY = board.getY(Align.center);
+		
 		renderGroup = new Group();
-		Image board = new Image(AssetLoader.getInstance().getFourPlayerBoard());
+		
+		turnIndicatorRenderer = new TurnIndicatorRenderer(middleOfBoardX, middleOfBoardY);
+		renderGroup.addActor(turnIndicatorRenderer.getRenderGroup());
+		
 		renderGroup.addActor(board);
 		
 		Map<GameColor, List<ImmutablePoint2>> spawnPoints = AssetLoader.getInstance().getSpawnPointCoordinates();
@@ -63,39 +67,34 @@ public class BoardRenderManager {
 			positionLists.put(color, positionList);
 		}
 		
-		diceRenderer = new DiceRenderer(renderGroup, 1086.f/2, 1086.f/2);
-		diceRolled = false;
-		timeToProcess = false;
+		diceRenderer = new DiceRenderer(renderGroup, middleOfBoardX, middleOfBoardY);
+	}
+	
+	public void spinTo(GameColor color) {
+		turnIndicatorRenderer.spinTo(color);
+	}
+	
+	public void startDiceRoll(int number, boolean clickToReveal) {
+		diceRenderer.startDiceRoll(number);
+	}
+	
+	public void endDiceRoll() {
+		diceRenderer.endDiceRoll();
 	}
 	
 	public void update(float deltaTime) {
 		// Show dice roll first before animating planes to move
 		diceRenderer.update(deltaTime);
-		if (timeToProcess) {
-			if (!diceRolled) {
-				diceRenderer.startDiceRollToNumber(diceRoll);
-				diceRolled = true;
-			} else if (diceRenderer.isDoneRendering()) {
-				processChoice();
-				timeToProcess = false;
-				diceRolled = false;
-			}
+	}
+	
+	public void playChoice(Choice choice) {
+		if (choice == null) {
+			throw new NullPointerException("Choice to render is null");
 		}
-	}
-	
-	public void processChoice(GameInfo info) {
-		choiceToProcess = info.getLastChoice();
-		diceRoll = info.getLastDiceRoll();
-		timeToProcess = true;
-	}
-	
-	private void processChoice() {
+		
+		Choice currentChoice = choice;
 		Deque<Choice> choiceStack = new ArrayDeque<Choice>();
 		
-		if (choiceToProcess == null) {
-			throw new NullPointerException();
-		}
-		Choice currentChoice = choiceToProcess;
 		choiceStack.push(currentChoice);
 		while (currentChoice.getParentChoice() != null) {
 			currentChoice = currentChoice.getParentChoice();
@@ -104,24 +103,22 @@ public class BoardRenderManager {
 		
 		switch (currentChoice.getType()) {
 		case MOVE_PLANE_TO_RUNWAY:
-			hangerRenderManagers.get(choiceToProcess.getColor()).movePlaneToRunway();
+			hangerRenderManagers.get(choice.getColor()).movePlaneToRunway();
 			break;
 			
 		case LAUNCH_PLANE_FROM_RUNWAY:
-			AirplaneSprite planeToLaunch = hangerRenderManagers.get(choiceToProcess.getColor()).removePlaneFromRunway();
+			AirplaneSprite planeToLaunch = hangerRenderManagers.get(choice.getColor()).removePlaneFromRunway();
 			
 			movePlane(planeToLaunch, choiceStack);
 			break;
 			
 		case FLY:
-			movePlanes(positionLists.get(choiceToProcess.getColor()).get(currentChoice.getOrigin()), choiceStack);
+			movePlanes(positionLists.get(choice.getColor()).get(currentChoice.getOrigin()), choiceStack);
 			break;
 			
 		default:
 			break;
 		}
-		
-		timeToProcess = false;
 	}
 	
 	public boolean isDoneRendering() {
@@ -209,7 +206,4 @@ public class BoardRenderManager {
 		return renderGroup;
 	}
 
-	public void showDiceRoll(int diceRoll) {
-		diceRenderer.startDiceRollToNumber(diceRoll);
-	}
 }

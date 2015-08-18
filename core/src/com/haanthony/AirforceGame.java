@@ -1,5 +1,8 @@
 package com.haanthony;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
@@ -12,6 +15,8 @@ public class AirforceGame extends ApplicationAdapter {
 	private HumanPlayer human;
 	private GameManager manager;
 	
+	private Set<AIPlayer> aiPlayers;
+	
 	@Override
 	public void create() {
 		stage = new Stage(new ExtendViewport(1086, 1086));
@@ -22,9 +27,20 @@ public class AirforceGame extends ApplicationAdapter {
 		
 		manager = new GameManager();
 		manager.insertPlayer(GameColor.BLUE, human);
-		manager.insertPlayer(GameColor.GREEN, new AIPlayer());
-		manager.insertPlayer(GameColor.RED, new AIPlayer());
-		manager.insertPlayer(GameColor.YELLOW, new AIPlayer());
+		
+		aiPlayers = new HashSet<AIPlayer>();
+		
+		AIPlayer greenPlayer = new AIPlayer();
+		AIPlayer redPlayer = new AIPlayer();
+		AIPlayer yellowPlayer = new AIPlayer();
+		
+		aiPlayers.add(greenPlayer);
+		aiPlayers.add(redPlayer);
+		aiPlayers.add(yellowPlayer);
+		
+		manager.insertPlayer(GameColor.GREEN, greenPlayer);
+		manager.insertPlayer(GameColor.RED, redPlayer);
+		manager.insertPlayer(GameColor.YELLOW, yellowPlayer);
 		
 		manager.newGame();
 	}
@@ -35,6 +51,11 @@ public class AirforceGame extends ApplicationAdapter {
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		
 		human.update(Gdx.graphics.getDeltaTime());
+		
+		for (AIPlayer aiPlayer : aiPlayers) {
+			aiPlayer.update(Gdx.graphics.getDeltaTime());
+		}
+		
 		manager.update();
 		stage.act(Gdx.graphics.getDeltaTime());
 		stage.draw();

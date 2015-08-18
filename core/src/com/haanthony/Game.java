@@ -113,8 +113,6 @@ public class Game {
 	
 	private GameColor playerTurn;
 	
-	private Choice latestChoice;
-	
 	public Game() {
 		long seed = System.nanoTime();
 		System.out.println("Random seed: " + seed);
@@ -122,6 +120,7 @@ public class Game {
 		newGame();
 	}
 	
+	// Starts a new game
 	public void newGame() {
 		hangers = new EnumMap<>(GameColor.class);
 		
@@ -134,8 +133,10 @@ public class Game {
 		playerTurn = GameColor.values()[randomGenerator.nextInt(GameColor.values().length)];
 	}
 	
-	// Generates the choices for the current player
-	public Set<Choice> getTurnChoices() {
+	// For the current player, rolls the dice, and generates choices
+	public GameInfo advanceAndGetState() {
+		GameColor currentPlayer = playerTurn;
+		
 		if (actionsMap.isEmpty()) {
 			lastDiceRoll = randomGenerator.nextInt(6) + 1;
 			
@@ -147,7 +148,7 @@ public class Game {
 			}
 		}
 		
-		return Collections.unmodifiableSet(actionsMap.keySet());
+		return new GameInfo(currentPlayer, Collections.unmodifiableSet(actionsMap.keySet()), lastDiceRoll);
 	}
 	
 	// TODO: Check for win conditions
@@ -168,19 +169,6 @@ public class Game {
 		}
 		
 		actionsMap.clear();
-		latestChoice = choice;
-	}
-	
-	public GameColor getTurn() {
-		return playerTurn;
-	}
-	
-	public int getDiceRoll() {
-		return lastDiceRoll;
-	}
-	
-	public GameInfo getGameInfo() {
-		return new GameInfo(board, hangers, latestChoice, lastDiceRoll);
 	}
 	
 	private void moveToNextPlayersTurn() {
