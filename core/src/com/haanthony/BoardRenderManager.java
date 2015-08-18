@@ -141,7 +141,6 @@ public class BoardRenderManager {
 		return diceRenderer.isDoneRendering();
 	}
 	
-	// TODO: Fix bug that if airplane on homerow lands on the spot it current is on, it will no longer animate
 	private void movePlanes(Iterable<AirplaneSprite> planes, Deque<Choice> choiceStack) {
 		// Update the position lists
 		GameColor color = choiceStack.peek().getColor();
@@ -190,7 +189,9 @@ public class BoardRenderManager {
 		}
 		
 		// Clear the origin set now that we worked with all the planes
-		if (originSet != null) {
+		// However, if the origin set is the same as the destination set - like when planes are in home row
+		// and they move back to their same spot via backtravel, then we shouldn't clear it
+		if (originSet != null && originSet != destinationSet) {
 			originSet.clear();
 		}
 	}
