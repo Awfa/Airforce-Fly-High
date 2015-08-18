@@ -252,15 +252,21 @@ public class Game {
 		if (positionLanded < BOARD_MAIN_ROUTE_END) {
 			GameColor colorOfPoint = GameColor.getColorOfPoint(positionLanded);
 			if (color == colorOfPoint) { // Matching color! Can be a slide or jump square
+				
+				// Slide condition
 				if (!slided && positionLanded == colorOfPoint.getSlideStart()) {
-					int obstacleSize = 0;
-					if (!board.getFormations(color.getSlideCross()).isEmpty()) {
-						// On the home stretch, between exit dest and home, will only have one airplane formation
-						// since only plane formations of their color can be on it
-						obstacleSize = board.getFormations(color.getSlideCross()).iterator().next().getSize();
+					
+					// Sliding is possible if the slide start square is not blocked by a bigger formation
+					// Sliding will even take down larger formations that are on the slide cross point
+					boolean obstacleFound = false;
+					Set<AirplaneFormation> potentialObstacles = board.getFormationsExcludingColor(color.getSlideStart(), color);
+					for (AirplaneFormation formation : potentialObstacles) {
+						if (formation.getSize() > sizeOfFormation) {
+							obstacleFound = true;
+						}
 					}
 					
-					if (obstacleSize <= sizeOfFormation) {
+					if (!obstacleFound) {
 						Set<Integer> takedowns = new HashSet<Integer>();
 						takedowns.add(color.getSlideStart());
 						takedowns.add(color.getSlideCross());
@@ -275,6 +281,7 @@ public class Game {
 					}
 				}
 				
+				// Jump condition
 				if (!jumped && positionLanded != colorOfPoint.getExit()) {
 					Set<Integer> takedowns = new HashSet<Integer>();
 					
