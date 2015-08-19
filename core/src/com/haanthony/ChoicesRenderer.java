@@ -3,10 +3,6 @@ package com.haanthony;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Texture.TextureFilter;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
@@ -15,7 +11,6 @@ import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.haanthony.Choice.ChoiceType;
 
@@ -25,12 +20,12 @@ public class ChoicesRenderer {
 	private final static float CHOICE_ARROW_BOUNCE_DURATION = 0.5f;
 	
 	private Group renderGroup;
-	private Set<Image> choiceImages;
+	private Set<Image> imagesToRemove;
 	private GameManager manager;
 	
 	public ChoicesRenderer(Group renderGroup, GameManager manager) {
 		this.renderGroup = renderGroup;
-		choiceImages = new HashSet<>();
+		imagesToRemove = new HashSet<>();
 		this.manager = manager;
 	}
 	
@@ -76,7 +71,8 @@ public class ChoicesRenderer {
 			choiceDot.setPosition(position.x, position.y, Align.center);
 			choiceDot.setBounds(choiceDot.getX(), choiceDot.getY(), choiceDot.getWidth(), choiceDot.getHeight());
 			
-			choiceImages.add(choiceDot);
+			imagesToRemove.add(choiceDot);
+			imagesToRemove.add(choiceArrow);
 			choiceDot.addListener(new InputListener() {
 				private boolean pressed = false;
 				private boolean inChoiceDot = false;
@@ -94,8 +90,7 @@ public class ChoicesRenderer {
 				public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
 					if (inChoiceDot) {
 						manager.playChoice(choice);
-						choiceArrow.remove();
-						clearChoices();
+						clearImages();
 					} else {
 						pressed = false;
 					}
@@ -138,10 +133,10 @@ public class ChoicesRenderer {
 		}
 	}
 	
-	private void clearChoices() {
-		for (Image choiceImage : choiceImages) {
-			renderGroup.removeActor(choiceImage);
+	private void clearImages() {
+		for (Image image : imagesToRemove) {
+			renderGroup.removeActor(image);
 		}
-		choiceImages.clear();
+		imagesToRemove.clear();
 	}
 }
