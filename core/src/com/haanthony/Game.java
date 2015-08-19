@@ -135,44 +135,71 @@ public class Game {
 	
 	// For the current player, rolls the dice, and generates choices
 	public GameInfo advanceAndGetState() {
-		GameColor currentPlayer = playerTurn;
-		
-		if (actionsMap.isEmpty()) {
-			lastDiceRoll = randomGenerator.nextInt(6) + 1;
+		if (!isGameOver()) {
+			GameColor currentPlayer = playerTurn;
 			
-			populateActionsMap(playerTurn, lastDiceRoll);
-			
-			// If no choices were generated, skip the player's turn
 			if (actionsMap.isEmpty()) {
-				moveToNextPlayersTurn();
+				lastDiceRoll = randomGenerator.nextInt(6) + 1;
+				
+				populateActionsMap(playerTurn, lastDiceRoll);
+				
+				// If no choices were generated, skip the player's turn
+				if (actionsMap.isEmpty()) {
+					moveToNextPlayersTurn();
+				}
 			}
+			
+			return new GameInfo(currentPlayer, Collections.unmodifiableSet(actionsMap.keySet()), lastDiceRoll);
+		} else {
+			return null;
 		}
-		
-		return new GameInfo(currentPlayer, Collections.unmodifiableSet(actionsMap.keySet()), lastDiceRoll);
 	}
 	
-	// TODO: Check for win conditions
-	public void playChoice(Choice choice) {
-		if (actionsMap.isEmpty()) {
-			throw new IllegalStateException("Cannot play a choice yet if no choices are generated");
-		}
-		
+	// Plays the choice onto the game
+	// Will throw an IllegalArgumentException if the given choice wasn't one of the available choices
+	// Returns a ChoiceAftermath representing what happened after the choice was played
+	public ChoiceAftermath playChoice(Choice choice) {		
 		if (!actionsMap.containsKey(choice)) {
 			throw new IllegalArgumentException("The given choice cannot be played since it wasn't one of the choices");
 		}
 		
 		actionsMap.get(choice).execute();
 		
+		// Record the results of the choice that was played
+		ChoiceAftermath aftermath = new ChoiceAftermath(isGameOver(), isPlayerDone(playerTurn) ? playerTurn : null);
+		
 		// Move the turn to the next player or if the roll was a 6, keep the same player
-		if (lastDiceRoll != 6) {
+		if (lastDiceRoll != 6 || isPlayerDone(playerTurn)) {
 			moveToNextPlayersTurn();
 		}
 		
 		actionsMap.clear();
+		
+		return aftermath;
+	}
+	
+	private boolean isPlayerDone(GameColor playerColor) {
+		AirplaneFormation formationAtHome = board.getFormations(playerColor.getHome(), playerColor);
+		
+		return formationAtHome != null && formationAtHome.getSize() == NUMBER_OF_AIRPLANES_PER_PLAYER;
+	}
+	
+	private boolean isGameOver() {
+		for (GameColor player : GameColor.values()) {
+			if (!isPlayerDone(player)) {
+				return false;
+			}
+		}
+		
+		return true;
 	}
 	
 	private void moveToNextPlayersTurn() {
-		playerTurn = GameColor.nextColor(playerTurn);
+		if (!isGameOver()) {
+			do {
+				playerTurn = GameColor.nextColor(playerTurn);
+			} while (isPlayerDone(playerTurn));
+		}
 	}
 	
 	private void populateActionsMap(GameColor color, int diceRoll) {

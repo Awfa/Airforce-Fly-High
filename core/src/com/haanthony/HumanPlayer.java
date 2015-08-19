@@ -3,6 +3,7 @@ package com.haanthony;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.haanthony.Game.GameColor;
 
 public class HumanPlayer implements Player {
 	private GameManager manager;
@@ -72,6 +73,36 @@ public class HumanPlayer implements Player {
 	public void playChoice(Choice choice) {
 		boardRenderManager.playChoice(choice);
 		inPlay = false;
+	}
+	
+	@Override
+	public void endGame(EndGameInfo info) {
+		System.out.println("Winners in order: ");
+		for (GameColor color : info) {
+			System.out.println(color);
+		}
+		
+		inPlay = true;
+		
+		getRenderGroup().addListener(new InputListener() {
+			@Override
+			public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+				return true;
+			}
+			
+			@Override
+			public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+				manager.readyPlayer(HumanPlayer.this);
+				getRenderGroup().removeListener(this);
+			}
+		});
+	}
+
+	@Override
+	public void reset() {
+		boardRenderManager.reset();
+		inPlay = false;
+		isCurrentPlayer = false;
 	}
 	
 	public void update(float deltaTime) {

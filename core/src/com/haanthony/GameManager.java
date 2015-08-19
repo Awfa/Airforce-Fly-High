@@ -56,6 +56,37 @@ public class GameManager {
 					manager.isChoicePlayed = false;
 					manager.choicePlayed = null;
 					manager.unreadyAll();
+					
+					if (manager.isGameOver) {
+						manager.state = GameManagerState.WAIT_TO_REVEAL_ENDGAME;
+					} else {
+						manager.state = GameManagerState.WAIT_FOR_PLAYER_READY;
+					}
+				}
+			}
+		},
+		WAIT_TO_REVEAL_ENDGAME {
+			@Override
+			public void update(GameManager manager) {
+				if (manager.allPlayersReady()) {
+					for (Player players : manager.players.values()) {
+						players.endGame(manager.endGameInfo);
+					}
+					
+					manager.unreadyAll();
+					manager.state = GameManagerState.WAIT_FOR_PLAY_AGAIN;
+				}
+			}
+		},
+		WAIT_FOR_PLAY_AGAIN {
+			@Override
+			public void update(GameManager manager) {
+				if (manager.allPlayersReady()) {
+					for (Player players : manager.players.values()) {
+						players.reset();
+					}
+					
+					manager.newGame();
 					manager.state = GameManagerState.WAIT_FOR_PLAYER_READY;
 				}
 			}
@@ -69,16 +100,20 @@ public class GameManager {
 
 	private Game game;
 	
-	private GameManagerState state = GameManagerState.WAIT_FOR_PLAYER_READY;
+	private GameManagerState state;
 	
 	private boolean isChoicePlayed;
 	private Choice choicePlayed;
 	
+	private boolean isGameOver;
+	
+	private EndGameInfo endGameInfo;
+	
 	public GameManager() {
 		players = new EnumMap<GameColor, Player>(GameColor.class);
-		game = new Game();
-		
 		readyPlayers = new HashSet<Player>();
+		state = GameManagerState.WAIT_FOR_PLAYER_READY;
+		game = new Game();
 	}
 	
 	public void insertPlayer(GameColor color, Player player) {		
@@ -88,10 +123,21 @@ public class GameManager {
 	
 	public void newGame() {
 		game.newGame();
+		
+		isChoicePlayed = false;
+		choicePlayed = null;
+		isGameOver = false;
+		endGameInfo = new EndGameInfo();
 	}
 	
 	public void playChoice(Choice choice) {
-		game.playChoice(choice);
+		ChoiceAftermath aftermath = game.playChoice(choice);
+		
+		isGameOver = aftermath.isGameOver();
+		if (aftermath.getPlayerThatFinished() != null) {
+			endGameInfo.insertPlayer(aftermath.getPlayerThatFinished());
+		}
+		
 		choicePlayed = choice;
 		isChoicePlayed = true;
 	}

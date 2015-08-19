@@ -49,7 +49,7 @@ public class BoardRenderManager {
 			for (int i = 0; i < Game.NUMBER_OF_AIRPLANES_PER_PLAYER; ++i) {
 				Image plane =  new Image(AssetLoader.getInstance().getAirplaneSprite(color));
 				plane.setOrigin(Align.center);
-				plane.setPosition(1030.f/2, 1030.f/2);
+				plane.setPosition(middleOfBoardX, middleOfBoardY, Align.center);
 				
 				AirplaneSprite sprite = new AirplaneSprite(plane);
 				hangerRenderManagers.get(color).addPlane(sprite);
@@ -139,6 +139,18 @@ public class BoardRenderManager {
 		}
 		
 		return diceRenderer.isDoneRendering();
+	}
+	
+	public void reset() {
+		for (GameColor color : GameColor.values()) {
+			for (Set<AirplaneSprite> setOfPlanes : positionLists.get(color)) {
+				for (AirplaneSprite airplane : setOfPlanes) {
+					hangerRenderManagers.get(color).addPlaneFromBoard(airplane);
+				}
+				
+				setOfPlanes.clear();
+			}
+		}
 	}
 	
 	private void movePlanes(Iterable<AirplaneSprite> planes, Deque<Choice> choiceStack) {

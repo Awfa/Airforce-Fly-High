@@ -24,4 +24,10 @@ public interface Player {
 	
 	// This method will inform the player of the choice that was played
 	public void playChoice(Choice choice);
+	
+	// This method will inform the player of the end game results
+	public void endGame(EndGameInfo info);
+	
+	// This method will tell the player to reset their game
+	public void reset();
 }

@@ -39,6 +39,16 @@ public class AIPlayer implements Player {
 	public void playChoice(Choice choice) {
 		manager.readyPlayer(this);
 	}
+	
+	@Override
+	public void endGame(EndGameInfo info) {
+		manager.readyPlayer(this);
+	}
+
+	@Override
+	public void reset() {
+		manager.readyPlayer(this);
+	}
 
 	public void update(float deltaTime) {
 		if (rollTime) {
