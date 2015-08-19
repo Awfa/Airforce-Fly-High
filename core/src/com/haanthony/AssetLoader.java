@@ -12,6 +12,9 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.haanthony.Game.GameColor;
 import com.haanthony.TurnIndicator.Direction;
 
@@ -23,8 +26,12 @@ public class AssetLoader {
 	private Map<GameColor, List<ImmutablePoint2>> spawnPointCoordinates;
 	private Map<GameColor, Texture> airplaneSprites;
 	
-	private Texture choiceDot;
-
+	private Drawable choiceArrow;
+	
+	private Drawable choiceDot;
+	private Drawable choiceDotHovered;
+	private Drawable choiceDotPressed;
+	
 	private BitmapFont diceFont;
 	
 	private Texture turnIndicatorCircle;
@@ -49,7 +56,8 @@ public class AssetLoader {
 		loadFourPlayerBoardCoordinates("boardCoordinates.txt");
 		loadSpawnPointCoordinates("spawnPoints.txt");
 		loadAirplaneSprites("blueplane.png", "greenplane.png", "redplane.png", "yellowplane.png");
-		loadChoiceDot("choiceDot.png");
+		loadChoiceArrow("choiceArrow.png");
+		loadChoiceDot("choiceDotFullShadow.png", "choiceDotHalfShadow.png", "choiceDotNoShadow.png");
 		loadDiceFont("diceFont.txt");
 		loadTurnIndicators("turnIndicatorCircle.png", "turnIndicatorArrow.png", "turnIndicatorClipPoints.txt", "turnIndicatorColorDirections.txt");
 		loadColors("colors.txt");
@@ -110,9 +118,21 @@ public class AssetLoader {
 		}
 	}
 	
-	private void loadChoiceDot(String choiceDotLocation) {
-		choiceDot = new Texture(choiceDotLocation);
-		choiceDot.setFilter(TextureFilter.Linear, TextureFilter.Nearest);
+	private void loadChoiceArrow(String choiceArrowLocation) {
+		Texture choiceArrowTexture = new Texture(choiceArrowLocation);
+		choiceArrow = new TextureRegionDrawable(new TextureRegion(choiceArrowTexture));
+		choiceArrowTexture.setFilter(TextureFilter.Linear, TextureFilter.Nearest);
+	}
+	
+	private void loadChoiceDot(String choiceDotLocation, String hoveredChoiceDotLocation, String pressedChoiceDotLocation) {
+		choiceDot = new TextureRegionDrawable(new TextureRegion(new Texture(choiceDotLocation)));
+		((TextureRegionDrawable) choiceDot).getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Nearest);
+		
+		choiceDotHovered = new TextureRegionDrawable(new TextureRegion(new Texture(hoveredChoiceDotLocation)));
+		((TextureRegionDrawable) choiceDotHovered).getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Nearest);
+		
+		choiceDotPressed = new TextureRegionDrawable(new TextureRegion(new Texture(pressedChoiceDotLocation)));
+		((TextureRegionDrawable) choiceDotPressed).getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Nearest);
 	}
 	
 	private void loadDiceFont(String diceFontLocation) {
@@ -169,8 +189,20 @@ public class AssetLoader {
 		return spawnPointCoordinates;
 	}
 	
-	public Texture getChoiceDot() {
+	public Drawable getChoiceArrow() {
+		return choiceArrow;
+	}
+	
+	public Drawable getChoiceDot() {
 		return choiceDot;
+	}
+	
+	public Drawable getChoiceDotHovered() {
+		return choiceDotHovered;
+	}
+	
+	public Drawable getChoiceDotPressed() {
+		return choiceDotPressed;
 	}
 
 	public BitmapFont getDiceFont() {
