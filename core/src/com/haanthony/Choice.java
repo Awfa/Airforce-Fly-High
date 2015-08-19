@@ -132,4 +132,55 @@ public class Choice {
 	public GameColor getColor() {
 		return color;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((color == null) ? 0 : color.hashCode());
+		result = prime * result + destination;
+		result = prime * result + origin;
+		result = prime * result + ((parentChoice == null) ? 0 : parentChoice.hashCode());
+		result = prime * result + ((route == null) ? 0 : route.hashCode());
+		result = prime * result + ((takedowns == null) ? 0 : takedowns.hashCode());
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Choice other = (Choice) obj;
+		if (color != other.color)
+			return false;
+		if (destination != other.destination)
+			return false;
+		if (origin != other.origin)
+			return false;
+		if (parentChoice == null) {
+			if (other.parentChoice != null)
+				return false;
+		} else if (!parentChoice.equals(other.parentChoice))
+			return false;
+		if (route == null) {
+			if (other.route != null)
+				return false;
+		} else if (!route.equals(other.route))
+			return false;
+		if (takedowns == null) {
+			if (other.takedowns != null)
+				return false;
+		} else if (!takedowns.equals(other.takedowns))
+			return false;
+		if (type != other.type)
+			return false;
+		return true;
+	}
+	
+	
 }
