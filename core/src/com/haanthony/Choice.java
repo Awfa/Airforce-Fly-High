@@ -1,28 +1,21 @@
 package com.haanthony;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.haanthony.Game.GameColor;
 
 public class Choice {
 	public enum ChoiceType {
-		MOVE_PLANE_TO_RUNWAY		("Move a plane from the hanger to the runway"),
-		LAUNCH_PLANE_FROM_RUNWAY	("Launch the plane from the runway to "),
-		FLY							("Fly the plane to "),
-		SLIDE						(" and slide the plane to "),
-		JUMP						(" and jump the plane to ");
-		
-		private final String description;
-		
-		ChoiceType(String description) {
-			this.description = description;
-		}
-		
-		public String getDescription() {
-			return description;
-		}
+		MOVE_PLANE_TO_RUNWAY,
+		LAUNCH_PLANE_FROM_RUNWAY,
+		FLY,
+		SLIDE,
+		JUMP;
 	}
 	
 	private static final int DEFAULT_INVALID_POSITION = -1;
@@ -33,13 +26,13 @@ public class Choice {
 	private final int destination; // Should not be available for MOVE_PLANE_TO_RUNWAY
 	private final int origin; // Only available for FLY, SLIDE, and JUMP
 	
-	private final GameColor color;
+	private final GameColor color; // Available to all
 	
 	private final Set<Integer> takedowns;
 	private final List<Integer> route;
 	
 	public Choice(ChoiceType type, GameColor color) {
-		this(type, color, DEFAULT_INVALID_POSITION, null, null);
+		this(type, color, DEFAULT_INVALID_POSITION, new TreeSet<Integer>(), new ArrayList<Integer>());
 	}
 	
 	public Choice(ChoiceType type, GameColor color, int destination, Set<Integer> takedowns, List<Integer> route) {
@@ -77,26 +70,6 @@ public class Choice {
 		this.origin = origin;
 		this.parentChoice = parentChoice;
 		this.color = color;
-	}
-	
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		if (parentChoice != null) {
-			sb.append(parentChoice.toString());
-		}
-		
-		sb.append(type.getDescription());
-		
-		if (destination != DEFAULT_INVALID_POSITION) {
-			sb.append(destination);
-		}
-		
-		if (origin != DEFAULT_INVALID_POSITION) {
-			sb.append(" from ").append(origin);
-		}
-		
-		return sb.toString();
 	}
 	
 	public ChoiceType getType() {
@@ -182,5 +155,151 @@ public class Choice {
 		return true;
 	}
 	
+	// ----- The following code is used to convert the choice into a string and back
+	private static final char HEADER = '!';
+	private static final char SEPERATER = '@';
+	private static final char NUMBER_DELIMITER = ',';
+	private static final char PARENT_CHOICE_INDICATOR = '#';
+	private static final char END_OF_CHOICE_CHAIN_INDICATOR = '$';
 	
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		toString(true, sb);
+		return sb.toString();
+	}
+	
+	private void toString(boolean includeHeader, StringBuilder sb) {
+		if (includeHeader) {
+			sb.append(HEADER);
+			sb.append(color.toString());
+			sb.append(SEPERATER);
+		}
+		
+		sb.append(type.toString()).append(SEPERATER);
+		sb.append(destination).append(SEPERATER);
+		sb.append(origin).append(SEPERATER);
+		
+		if (takedowns != null && !takedowns.isEmpty()) {
+			Iterator<Integer> iter = takedowns.iterator();
+			sb.append(iter.next());
+			while(iter.hasNext()) {
+				sb.append(NUMBER_DELIMITER).append(iter.next());
+			}
+		}
+		sb.append(SEPERATER);
+		
+		if (route != null && !route.isEmpty()) {
+			Iterator<Integer> iter = route.iterator();
+			sb.append(iter.next());
+			while(iter.hasNext()) {
+				sb.append(NUMBER_DELIMITER).append(iter.next());
+			}
+		}
+		sb.append(SEPERATER);
+		
+		if (parentChoice != null) {
+			sb.append(PARENT_CHOICE_INDICATOR).append(SEPERATER);
+			parentChoice.toString(false, sb);
+		} else {
+			sb.append(END_OF_CHOICE_CHAIN_INDICATOR);
+		}
+	}
+	
+	public static Choice fromString(String choiceString) {
+		// Process the header
+		if (choiceString.charAt(0) != HEADER) {
+			throw new IllegalArgumentException("Header not found");
+		}
+		
+		int index = 1;
+		int nextSeperater = choiceString.indexOf(SEPERATER, index);
+		GameColor color = GameColor.valueOf(choiceString.substring(index, nextSeperater));
+		
+		index = nextSeperater + 1;
+		
+		return fromString(choiceString.substring(index), color);
+	}
+	
+	private static Choice fromString(String choiceString, GameColor color) {
+		if (choiceString == null || choiceString.isEmpty()) {
+			throw new IllegalArgumentException();
+		}
+		
+		int index = 0;
+		
+		ChoiceBuilder choiceBuilder = new ChoiceBuilder();
+		choiceBuilder.color = color;
+		
+		// Process choice type
+		int nextSeperater = choiceString.indexOf(SEPERATER, index);
+		choiceBuilder.type = ChoiceType.valueOf(choiceString.substring(index, nextSeperater));
+		index = nextSeperater + 1;
+		
+		// Process destination
+		nextSeperater = choiceString.indexOf(SEPERATER, index);
+		choiceBuilder.destination = Integer.valueOf(choiceString.substring(index, nextSeperater));
+		index = nextSeperater + 1;
+		
+		// Process origin
+		nextSeperater = choiceString.indexOf(SEPERATER, index);
+		choiceBuilder.origin = Integer.valueOf(choiceString.substring(index, nextSeperater));
+		index = nextSeperater + 1;
+		
+		// Process takedowns
+		nextSeperater = choiceString.indexOf(SEPERATER, index);
+		String takedownString = choiceString.substring(index, nextSeperater);
+		Set<Integer> takedowns = new TreeSet<>();
+		if (takedownString.length() > 0) {
+			String[] numbers = takedownString.split(String.valueOf(NUMBER_DELIMITER));
+			for (String number : numbers) {
+				takedowns.add(Integer.valueOf(number));
+			}
+		}
+		choiceBuilder.takedowns = takedowns;
+		index = nextSeperater + 1;
+		
+		// Process route
+		nextSeperater = choiceString.indexOf(SEPERATER, index);
+		String routeString = choiceString.substring(index, nextSeperater);
+		List<Integer> route = new ArrayList<>();
+		if (routeString.length() > 0) {
+			String[] numbers = routeString.split(String.valueOf(NUMBER_DELIMITER));
+			for (String number : numbers) {
+				route.add(Integer.valueOf(number));
+			}
+		}
+		choiceBuilder.route = route;
+		index = nextSeperater + 1;
+		
+		// Process parent choice if present
+		if (choiceString.charAt(index) == PARENT_CHOICE_INDICATOR) {
+			nextSeperater = choiceString.indexOf(SEPERATER, index);
+			index = nextSeperater + 1;
+			choiceBuilder.parentChoice = fromString(choiceString.substring(index), choiceBuilder.color);
+			
+			return choiceBuilder.build();
+		} else if (choiceString.charAt(index) == END_OF_CHOICE_CHAIN_INDICATOR) {
+			return choiceBuilder.build();
+		} else {
+			throw new IllegalArgumentException("Choice string does not terminate properly.");
+		}
+	}
+	
+	private static class ChoiceBuilder {
+		private ChoiceType type;
+		private Choice parentChoice;
+		
+		private int destination; // Should not be available for MOVE_PLANE_TO_RUNWAY
+		private int origin; // Only available for FLY, SLIDE, and JUMP
+		
+		private GameColor color; // Available to all
+		
+		private Set<Integer> takedowns;
+		private List<Integer> route;
+		
+		public Choice build() {
+			return new Choice(type, color, destination, takedowns, route, origin, parentChoice);
+		}
+	}
 }
