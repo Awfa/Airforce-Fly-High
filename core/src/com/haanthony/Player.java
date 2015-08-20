@@ -3,7 +3,7 @@ package com.haanthony;
 public interface Player {
 	// Sets the manager for this player. This manager is where the player reports
 	// their actions and receives game information from
-	public void setGameManager(GameManager manager);
+	public void setGameManager(Manager manager);
 	
 	// This will update the player with the current game information
 	// The player will behave in one of two ways:
