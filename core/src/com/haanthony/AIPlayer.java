@@ -9,6 +9,7 @@ public class AIPlayer implements Player {
 	private boolean rollTime;
 
 	private Choice choiceToPlay;
+	private boolean unready;
 	
 	public AIPlayer() {
 		timer = 0;
@@ -51,22 +52,29 @@ public class AIPlayer implements Player {
 	}
 
 	public void update(float deltaTime) {
-		if (rollTime) {
-			timer += deltaTime;
-			
-			if (timer > DICE_DELAY) {
-				rollTime = false;
-				timer = 0;
-				manager.readyPlayer(this);
+		if (unready) {
+			if (rollTime) {
+				timer += deltaTime;
 				
-				if (choiceToPlay != null) {
-					manager.playChoice(choiceToPlay);
-					choiceToPlay = null;
+				if (timer > DICE_DELAY) {
+					rollTime = false;
+					timer = 0;
+					manager.readyPlayer(this);
+					unready = false;
+					if (choiceToPlay != null) {
+						manager.playChoice(choiceToPlay);
+						choiceToPlay = null;
+					}
 				}
+			} else {
+				manager.readyPlayer(this);
+				unready = false;
 			}
-		} else {
-			manager.readyPlayer(this);
 		}
-		
+	}
+
+	@Override
+	public void unready() {
+		unready = true;
 	}
 }

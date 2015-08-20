@@ -21,8 +21,8 @@ public class RemoteGameManager implements Manager {
 	private BufferedReader in;
 	private BufferedWriter out;
 	
-	public RemoteGameManager(Player player, Socket socket) {
-		if (player == null || socket == null) {
+	public RemoteGameManager(Socket socket) {
+		if (socket == null) {
 			throw new NullPointerException();
 		}
 		
@@ -30,17 +30,22 @@ public class RemoteGameManager implements Manager {
 			throw new IllegalArgumentException("Socket is not connected");
 		}
 		
-		this.player = player;
 		this.socket = socket;
 		
 		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+	}
+	
+	public void setPlayer(Player player) {
+		this.player = player;
+		player.setGameManager(this);
 	}
 
 	@Override
 	public void playChoice(Choice choice) {
 		try {
 			out.write(RemoteGameManagerMessage.CHOICE + "\n" + choice.toString() + "\n");
+			out.flush();
 		} catch (IOException e) {
 			System.err.println("An IOException has occured when trying to play the given choice");
 		}
@@ -50,6 +55,7 @@ public class RemoteGameManager implements Manager {
 	public void readyPlayer(Player player) {
 		try {
 			out.write(RemoteGameManagerMessage.READY + "\n");
+			out.flush();
 		} catch (IOException e) {
 			System.err.println("An IOException has occured when trying to ready the player");
 		}
@@ -85,6 +91,10 @@ public class RemoteGameManager implements Manager {
 					
 				case RESET:
 					player.reset();
+					break;
+					
+				case UNREADY:
+					player.unready();
 					break;
 				}
 			}

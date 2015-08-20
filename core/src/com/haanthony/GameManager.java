@@ -20,12 +20,13 @@ public class GameManager implements Manager {
 					
 					// Unready the current player for the next state
 					Player currentPlayer = manager.players.get(gameInformation.getPlayerColor());
-					manager.readyPlayers.remove(currentPlayer);
 					
 					// Send the game information to everyone
 					for (Player player : manager.players.values()) {
 						player.updateGameInfo(gameInformation, currentPlayer == player);
 					}
+					
+					manager.unreadyPlayer(currentPlayer);
 					
 					manager.state = GameManagerState.WAIT_TO_REVEAL_DICE;
 				}
@@ -159,7 +160,16 @@ public class GameManager implements Manager {
 		return readyPlayers.size() == players.values().size();
 	}
 	
+	private void unreadyPlayer(Player player) {
+		readyPlayers.remove(player);
+		player.unready();
+	}
+	
 	private void unreadyAll() {
+		for (Player player : readyPlayers) {
+			player.unready();
+		}
+		
 		readyPlayers.clear();
 	}
 }

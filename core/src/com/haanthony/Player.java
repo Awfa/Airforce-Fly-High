@@ -30,4 +30,7 @@ public interface Player {
 	
 	// This method will tell the player to reset their game
 	public void reset();
+	
+	// This method will tell the player they are not ready
+	public void unready();
 }

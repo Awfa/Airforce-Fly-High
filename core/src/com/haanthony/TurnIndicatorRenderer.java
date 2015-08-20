@@ -42,7 +42,6 @@ public class TurnIndicatorRenderer {
 	public void spinTo(GameColor color) {
 		currentDirection = AssetLoader.getInstance().getColorDirections().get(color);
 		float direction = currentDirection.getAngle();
-		System.out.println("Turning turn indicator from: " + renderGroup.getRotation() + " to " + direction);
 		
 		// This conditional makes sure that the turn indicator always spins clockwise
 		if (renderGroup.getRotation() < direction) {

@@ -15,7 +15,8 @@ public class RemotePlayer implements Player {
 		REVEAL_DICE,
 		PLAY_CHOICE,
 		END_GAME,
-		RESET;
+		RESET,
+		UNREADY;
 	}
 
 	private Socket socket;
@@ -48,6 +49,7 @@ public class RemotePlayer implements Player {
 	public void updateGameInfo(GameInfo info, boolean isCurrentPlayer) {
 		try {
 			out.write(RemotePlayerMessage.UPDATE_GAME_INFO + "\n" + info.toString() + "\n" + isCurrentPlayer + "\n");
+			out.flush();
 		} catch (IOException e) {
 			System.err.println("An IOException has occured when trying to update game info for remote player");
 		}
@@ -57,6 +59,7 @@ public class RemotePlayer implements Player {
 	public void revealDice() {
 		try {
 			out.write(RemotePlayerMessage.REVEAL_DICE + "\n");
+			out.flush();
 		} catch (IOException e) {
 			System.err.println("An IOException has occured when trying to reveal dice for remote player");
 		}
@@ -66,6 +69,7 @@ public class RemotePlayer implements Player {
 	public void playChoice(Choice choice) {
 		try {
 			out.write(RemotePlayerMessage.PLAY_CHOICE + "\n" + choice.toString() + "\n");
+			out.flush();
 		} catch (IOException e) {
 			System.err.println("An IOException has occured when trying to play choice for remote player");
 		}
@@ -75,6 +79,7 @@ public class RemotePlayer implements Player {
 	public void endGame(EndGameInfo info) {
 		try {
 			out.write(RemotePlayerMessage.END_GAME + "\n" + info.toString() + "\n");
+			out.flush();
 		} catch (IOException e) {
 			System.err.println("An IOException has occured when trying to end game for remote player");
 		}
@@ -84,8 +89,20 @@ public class RemotePlayer implements Player {
 	public void reset() {
 		try {
 			out.write(RemotePlayerMessage.RESET + "\n");
+			out.flush();
 		} catch (IOException e) {
 			System.err.println("An IOException has occured when trying to reset game for remote player");
+		}
+	}
+	
+
+	@Override
+	public void unready() {
+		try {
+			out.write(RemotePlayerMessage.UNREADY + "\n");
+			out.flush();
+		} catch (IOException e) {
+			System.err.println("An IOException has occured when trying to unready remote player");
 		}
 	}
 	

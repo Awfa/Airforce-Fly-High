@@ -13,6 +13,7 @@ public class HumanPlayer implements Player {
 	
 	private boolean inPlay;
 	private boolean isCurrentPlayer;
+	private boolean unready;
 	
 	public HumanPlayer() {
 		boardRenderManager = new BoardRenderManager();
@@ -29,6 +30,7 @@ public class HumanPlayer implements Player {
 	public void setGameManager(Manager gameManager) {
 		manager = gameManager;
 		choicesRenderer = new ChoicesRenderer(boardRenderManager.getRenderGroup(), manager);
+		unready = true;
 	}
 	
 	@Override
@@ -103,12 +105,19 @@ public class HumanPlayer implements Player {
 		boardRenderManager.reset();
 		inPlay = false;
 		isCurrentPlayer = false;
+		unready();
 	}
 	
 	public void update(float deltaTime) {
 		boardRenderManager.update(deltaTime);
-		if (manager != null && boardRenderManager.isDoneRendering() && !inPlay) {
+		if (manager != null && boardRenderManager.isDoneRendering() && !inPlay && unready) {
 			manager.readyPlayer(this);
+			unready = false;
 		}
+	}
+
+	@Override
+	public void unready() {
+		unready = true;
 	}
 }
