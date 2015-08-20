@@ -1,7 +1,6 @@
 package com.haanthony;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 import com.haanthony.Game.GameColor;
