@@ -21,9 +21,9 @@ public class ChoicesRenderer {
 	
 	private Group renderGroup;
 	private Set<Image> imagesToRemove;
-	private GameManager manager;
+	private Manager manager;
 	
-	public ChoicesRenderer(Group renderGroup, GameManager manager) {
+	public ChoicesRenderer(Group renderGroup, Manager manager) {
 		this.renderGroup = renderGroup;
 		imagesToRemove = new HashSet<>();
 		this.manager = manager;
