@@ -3,7 +3,7 @@ package com.haanthony;
 public class AIPlayer implements Player {
 	public static final float DICE_DELAY = 0.5f;
 	
-	private GameManager manager;
+	private Manager manager;
 	
 	private float timer;
 	private boolean rollTime;
@@ -16,7 +16,7 @@ public class AIPlayer implements Player {
 	}
 
 	@Override
-	public void setGameManager(GameManager manager) {
+	public void setGameManager(Manager manager) {
 		this.manager = manager;
 		manager.readyPlayer(this);
 	}

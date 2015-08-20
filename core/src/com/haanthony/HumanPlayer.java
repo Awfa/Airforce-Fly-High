@@ -6,7 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.haanthony.Game.GameColor;
 
 public class HumanPlayer implements Player {
-	private GameManager manager;
+	private Manager manager;
 	
 	private BoardRenderManager boardRenderManager;
 	private ChoicesRenderer choicesRenderer;
@@ -26,7 +26,7 @@ public class HumanPlayer implements Player {
 	}
 	
 	@Override
-	public void setGameManager(GameManager gameManager) {
+	public void setGameManager(Manager gameManager) {
 		manager = gameManager;
 		choicesRenderer = new ChoicesRenderer(boardRenderManager.getRenderGroup(), manager);
 	}

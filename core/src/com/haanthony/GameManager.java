@@ -7,7 +7,7 @@ import java.util.Set;
 
 import com.haanthony.Game.GameColor;
 
-public class GameManager {
+public class GameManager implements Manager {
 	private enum GameManagerState {
 		WAIT_FOR_PLAYER_READY {
 			@Override
@@ -130,6 +130,7 @@ public class GameManager {
 		endGameInfo = new EndGameInfo();
 	}
 	
+	@Override
 	public void playChoice(Choice choice) {
 		ChoiceAftermath aftermath = game.playChoice(choice);
 		
@@ -142,6 +143,7 @@ public class GameManager {
 		isChoicePlayed = true;
 	}
 	
+	@Override
 	public void readyPlayer(Player player) {
 		if (!players.values().contains(player)) {
 			throw new IllegalArgumentException();
