@@ -368,6 +368,7 @@ public class Game {
 				// If the plane moves from the spawning position after launching
 				if (destination != color.getSpawn()) {
 					origin = color.getSpawn();
+					takedowns.add(origin);
 				} else {
 					return takedowns; // if the destination is the same as the spawn, nothing is taken down
 				}
@@ -376,11 +377,13 @@ public class Game {
 			// We want to add everything in between of our origin and our destination
 			BoardRay ray = new BoardRay(origin, color);
 			
-			ray.advance(); // Skip the origin
+			if (ray.getPosition() != destination) {
+				ray.advance(); // Skip the origin
+			}
+			
 			while (ray.getPosition() != destination) {
 				if (getPossibleObstacleSize(ray.getPosition(), color) > 0) {
 					takedowns.add(ray.getPosition());
-					System.err.println("loop1");
 				}
 				
 				ray.advance();
@@ -408,14 +411,22 @@ public class Game {
 				ray = new BoardRay(color.getSpawn(), color);
 			} else {
 				ray = new BoardRay(origin, color);
-				ray.advance(); // Skip the beginning
+				
+				if (ray.getPosition() != destination) {
+					ray.advance(); // Skip the beginning
+				}
 			}
 			
+			boolean moved = false;
 			while (ray.getPosition() != destination) {
 				route.add(ray.getPosition());
 				ray.advance();
+				moved = true;
 			}
-			route.add(destination);
+			
+			if (type == ChoiceType.LAUNCH_PLANE_FROM_RUNWAY || moved) {
+				route.add(destination);
+			}
 		}
 		
 		return route;
@@ -424,7 +435,7 @@ public class Game {
 	// This method returns the farthest destination from the start position to the given displacement for the given formation size and color
 	private int raycastDestination(int sizeOfFormation, GameColor color, int startPosition, int displacement) {
 		// find the closest obstacle by advancing until we find an obstacle
-		BoardRay ray = new BoardRay(startPosition, color);;
+		BoardRay ray = new BoardRay(startPosition, color);
 		
 		while (displacement > 0) {
 			if (getPossibleObstacleSize(ray.getPosition(), color) > sizeOfFormation) {
