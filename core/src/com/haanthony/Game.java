@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.haanthony.Choice.ChoiceType;
 
@@ -214,7 +215,7 @@ public class Game {
 		
 		AirplaneFormation formationAtHome = board.getFormations(color.getHome(), color);
 		if (formationAtHome == null || formationAtHome.getSize() < NUMBER_OF_AIRPLANES_PER_PLAYER) {
-			if (diceRoll == 6 && hangers.get(color).getPlanesInHanger() > 0) {
+			if (diceRoll % 2 == 0 && hangers.get(color).getPlanesInHanger() > 0) {
 				choices.add(new Choice(ChoiceType.MOVE_PLANE_TO_RUNWAY, color));
 				System.out.println("-Can move plane from hanger to runway");
 				System.out.println();
@@ -223,16 +224,10 @@ public class Game {
 			// Generate choices for taking off planes from the runway
 			if (hangers.get(color).getPlanesOnRunway() > 0) {
 				// We subtract 1 from the dice roll because moving from the runway to inflight takes one move.
-				// and formation size is one since when a plane takes off it's a formation of 1
-				Set<Integer> takedowns = new HashSet<Integer>();
-				List<Integer> route = new ArrayList<Integer>();
-				
-				int destination = raycastDestination(1, color, color.getSpawn(), diceRoll - 1, takedowns, route, false);
-				
-				// Make it so that planes can take out planes that are sitting on their spawn square if they pass them
-				if (destination != color.getSpawn()) {
-					takedowns.add(color.getSpawn());
-				}
+				// and formation size is one since when a plane takes off it's a formation of 1				
+				int destination = raycastDestination(1, color, color.getSpawn(), diceRoll - 1);
+				List<Integer> route = generateRoute(ChoiceType.LAUNCH_PLANE_FROM_RUNWAY, color, -1, destination);
+				Set<Integer> takedowns = generateTakedowns(ChoiceType.LAUNCH_PLANE_FROM_RUNWAY, color, -1, destination, false);
 				
 				Choice liftoffChoice = new Choice(ChoiceType.LAUNCH_PLANE_FROM_RUNWAY, color, destination, takedowns, route);
 				choices.add(liftoffChoice);
@@ -246,10 +241,9 @@ public class Game {
 				int currentPosition = board.getFormationsPosition(formation);
 				
 				if (currentPosition != color.getHome()) {
-					Set<Integer> takedowns = new HashSet<Integer>();
-					List<Integer> route = new ArrayList<Integer>();
-					int destination = raycastDestination(formation.getSize(), color, currentPosition, diceRoll, takedowns, route, false);
-					
+					int destination = raycastDestination(formation.getSize(), color, currentPosition, diceRoll);
+					List<Integer> route = generateRoute(ChoiceType.FLY, color, currentPosition, destination);
+					Set<Integer> takedowns = generateTakedowns(ChoiceType.FLY, color, currentPosition, destination, false);
 					if (!route.isEmpty()) {
 						Choice flyChoice = new Choice(ChoiceType.FLY, color, destination, takedowns, route, currentPosition);
 						choices.add(flyChoice);
@@ -285,22 +279,11 @@ public class Game {
 					
 					// Sliding is possible if the slide start square is not blocked by a bigger formation
 					// Sliding will even take down larger formations that are on the slide cross point
-					boolean obstacleFound = false;
-					Set<AirplaneFormation> potentialObstacles = board.getFormationsExcludingColor(color.getSlideStart(), color);
-					for (AirplaneFormation formation : potentialObstacles) {
-						if (formation.getSize() > sizeOfFormation) {
-							obstacleFound = true;
-						}
-					}
+					boolean obstacleFound = getPossibleObstacleSize(color.getSlideStart(), color) > sizeOfFormation;
 					
 					if (!obstacleFound) {
-						Set<Integer> takedowns = new HashSet<Integer>();
-						takedowns.add(color.getSlideStart());
-						takedowns.add(color.getSlideCross());
-						
-						List<Integer> route = new ArrayList<Integer>();
-						route.add(color.getSlideEnd());
-
+						List<Integer> route = generateRoute(ChoiceType.SLIDE, color, color.getSlideStart(), color.getSlideEnd());
+						Set<Integer> takedowns = generateTakedowns(ChoiceType.SLIDE, color, color.getSlideStart(), color.getSlideEnd(), true);
 						Choice slideChoice = new Choice(ChoiceType.SLIDE, color, color.getSlideEnd(), takedowns, route, positionLanded, choice);
 						choices.add(slideChoice);
 						System.out.println("--From " + positionLanded + ", can slide to position: " + colorOfPoint.getSlideEnd());
@@ -309,15 +292,10 @@ public class Game {
 				}
 				
 				// Jump condition
-				if (!jumped && positionLanded != colorOfPoint.getExit()) {
-					Set<Integer> takedowns = new HashSet<Integer>();
-					
-					int destination = raycastDestination(sizeOfFormation, color,
-							positionLanded, 4, takedowns, null, true);
-					
-					List<Integer> route = new ArrayList<Integer>();
-					route.add(destination);
-					
+				if (!jumped && positionLanded != colorOfPoint.getExit()) {					
+					int destination = raycastDestination(sizeOfFormation, color, positionLanded, 4);
+					List<Integer> route = generateRoute(ChoiceType.JUMP, color, positionLanded, destination);
+					Set<Integer> takedowns = generateTakedowns(ChoiceType.JUMP, color, positionLanded, destination, true);
 					if (destination != positionLanded) {
 						Choice jumpChoice = new Choice(ChoiceType.JUMP, color, destination, takedowns, route, positionLanded, choice);
 						choices.add(jumpChoice);
@@ -363,54 +341,114 @@ public class Game {
 		return action;
 	}
 	
-	// This method returns the farthest destination from the start position to the given displacement for the given formation size and color
-	private int raycastDestination(int sizeOfFormation, GameColor color, int startPosition, int displacement,
-			Set<Integer> takedowns, List<Integer> route, boolean includeStart) {
-		// find the closest obstacle by advancing until we find an obstacle
-		int ray = startPosition;
-		int rayDisplacement = 1;
+	// Returns the set of takedown positions for the given choice description
+	// The takedowns will be places on the board of the interval (origin, destination)
+	// If the choice is a child choice, the interval will be [origin, destination)
+	private Set<Integer> generateTakedowns(ChoiceType type, GameColor color, int origin, int destination, boolean isChildChoice) {
+		Set<Integer> takedowns = new TreeSet<Integer>();
 		
-		boolean obstacleFound = false;
-		boolean inHomeStretch = color.inHomeStretch(startPosition);
+		// Moving the plane to the runway will have no takedowns
+		if (type == ChoiceType.MOVE_PLANE_TO_RUNWAY) {
+			return takedowns;
+		}
 		
-		while (displacement > 0 && !obstacleFound) {
-			for (AirplaneFormation possibleObstacle : board.getFormationsExcludingColor(ray, color)) {
-				// We check the size against one because freshly lifted off formations start at size 1
-				if (possibleObstacle.getSize() > sizeOfFormation) {
-					obstacleFound = true;
-				} else if (includeStart || ray != startPosition) {
-					takedowns.add(ray);
-				}
+		// If we're not first in the chain, then add our origin
+		if (isChildChoice) {
+			if (getPossibleObstacleSize(origin, color) > 0) {
+				takedowns.add(origin);
 			}
-			
-			if (!obstacleFound) {
-				ray += rayDisplacement;
-				if (!inHomeStretch) {
-					ray = ray % BOARD_MAIN_ROUTE_END;
-					// modulo here not needed but just in case the exit point is ever at the boundary
-					if (ray == (color.getExit() + 1) % BOARD_MAIN_ROUTE_END) {
-						ray = color.getExitDest();
-						inHomeStretch = true;
-					}
+		}
+		
+		if (type == ChoiceType.SLIDE) {
+			if (getPossibleObstacleSize(color.getSlideCross(), color) > 0) {
+				takedowns.add(color.getSlideCross());
+			}
+		} else {
+			if (type == ChoiceType.LAUNCH_PLANE_FROM_RUNWAY) {
+				// If the plane moves from the spawning position after launching
+				if (destination != color.getSpawn()) {
+					origin = color.getSpawn();
 				} else {
-					if (ray > color.getHome()) {
-						ray = color.getHome() - 1;
-						rayDisplacement = -1;
-					}
-					
-					if (ray < color.getExitDest()) {
-						throw new AssertionError("Traced ray went backwards out of the exit!?");
-					}
-				}
-				if (route != null) {
-					route.add(ray);
+					return takedowns; // if the destination is the same as the spawn, nothing is taken down
 				}
 			}
 			
+			// We want to add everything in between of our origin and our destination
+			BoardRay ray = new BoardRay(origin, color);
+			
+			ray.advance(); // Skip the origin
+			while (ray.getPosition() != destination) {
+				if (getPossibleObstacleSize(ray.getPosition(), color) > 0) {
+					takedowns.add(ray.getPosition());
+					System.err.println("loop1");
+				}
+				
+				ray.advance();
+			}
+		}
+		
+		return takedowns;
+	}
+	
+	// Returns the route for the given choice description
+	// This is the interval on which the plane travels (origin, destination]
+	private List<Integer> generateRoute(ChoiceType type, GameColor color, int origin, int destination) {
+		List<Integer> route = new ArrayList<Integer>();
+		
+		if (type == ChoiceType.MOVE_PLANE_TO_RUNWAY) {
+			return route;
+		} else if (type == ChoiceType.SLIDE) {
+			route.add(color.getSlideCross());
+			route.add(color.getSlideEnd());
+		} else if (type == ChoiceType.JUMP) {
+			route.add(destination);
+		} else {
+			BoardRay ray;
+			if (type == ChoiceType.LAUNCH_PLANE_FROM_RUNWAY) {
+				ray = new BoardRay(color.getSpawn(), color);
+			} else {
+				ray = new BoardRay(origin, color);
+				ray.advance(); // Skip the beginning
+			}
+			
+			while (ray.getPosition() != destination) {
+				route.add(ray.getPosition());
+				ray.advance();
+			}
+			route.add(destination);
+		}
+		
+		return route;
+	}
+	
+	// This method returns the farthest destination from the start position to the given displacement for the given formation size and color
+	private int raycastDestination(int sizeOfFormation, GameColor color, int startPosition, int displacement) {
+		// find the closest obstacle by advancing until we find an obstacle
+		BoardRay ray = new BoardRay(startPosition, color);;
+		
+		while (displacement > 0) {
+			if (getPossibleObstacleSize(ray.getPosition(), color) > sizeOfFormation) {
+				return ray.getPosition();
+			}
+			
+			ray.advance();
 			displacement--;
 		}
 		
-		return ray;
+		return ray.getPosition();
+	}
+	
+	// Returns the size of the biggest plane of not the given color at the point
+	private int getPossibleObstacleSize(int position, GameColor color) {
+		int biggestSize = 0;
+		
+		for (AirplaneFormation formations : board.getFormationsExcludingColor(position, color)) {
+			if (formations.getSize() > biggestSize) {
+				biggestSize = formations.getSize();
+			}
+		}
+		
+		return biggestSize;
 	}
 	
 	// Verify that the given point is inbounds of the board
@@ -505,35 +543,43 @@ public class Game {
 		}
 	}
 	
-	public static void main(String[] args) {
-		Game game = new Game();
+	private static class BoardRay {
+		private int position;
+		private GameColor color;
 		
-		Map<Choice, GameAction> map = game.doBlueRoll(6);
+		private int displacement;
+		private boolean isInHomeStretch;
 		
-		printHangerInfo(GameColor.BLUE, game);
+		public BoardRay(int position, GameColor color) {
+			this.position = position;
+			this.color = color;
+			
+			displacement = 1;
+			isInHomeStretch = color.inHomeStretch(position);
+		}
 		
-		System.out.println("Moving plane from blue hanger to blue runway...");
-		map.values().iterator().next().execute();
-		printHangerInfo(GameColor.BLUE, game);		
-		
-		map = game.doBlueRoll(6);
-		for (Choice choice : map.keySet()) {
-			if (choice.getType() == ChoiceType.JUMP) {
-				System.out.println(choice);
-				map.get(choice).execute();
+		public void advance() {
+			if (position == color.getExit()) {
+				position = color.getExitDest();
+				isInHomeStretch = true;
+			} else if (position == color.getExitDest() && displacement == -1) {
+				position = color.getExit();
+				displacement = 1;
+			} else {
+				position += displacement;
+			}
+			
+			if (isInHomeStretch) {
+				if (position == color.getHome()) {
+					displacement = -1;
+				}
+			} else {
+				position = position % BOARD_MAIN_ROUTE_END;
 			}
 		}
 		
-		map = game.doBlueRoll(4);
-	}
-	
-	private static void printHangerInfo(GameColor color, Game game) {
-		System.out.println("Planes in " + color + " hanger: " + game.hangers.get(color).getPlanesInHanger());
-		System.out.println("Planes in " + color + " runway: " + game.hangers.get(color).getPlanesOnRunway());
-		System.out.println();
-	}
-	
-	private Map<Choice, GameAction> doBlueRoll(int diceRoll) {
-		return generateGameActions(generateChoices(GameColor.BLUE, diceRoll), GameColor.BLUE);
+		public int getPosition() {
+			return position;
+		}
 	}
 }
