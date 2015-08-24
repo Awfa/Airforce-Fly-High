@@ -177,9 +177,6 @@ public class BoardRenderManager {
 			for (int routePath : choice.getRoute()) {
 				destinations.add(boardPositions.get(routePath));
 			}
-			if (choice.getRoute().isEmpty()) {
-				destinations.add(boardPositions.get(choice.getDestination()));
-			}
 			
 			// Handle the planes to be taken down
 			for (Integer position : choice.getTakedowns()) {
