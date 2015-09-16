@@ -1,4 +1,8 @@
 # Air Force Fly High
+
+![Air Force Fly High Screenshot](/screenshot.png?raw=true "Screenshot")
+An exciting beginning to a game of Air Force Fly High!
+
 Air Force Fly High was a project I made so that I can play [Aeroplane Chess](https://en.wikipedia.org/wiki/Aeroplane_Chess) with my friends over the computer.
 To play, on your turn, click to roll the dice. Once the dice is rolled, choices that you can take will be presented to you
 through purple dots on the board. Click any of the dots to play your move.
