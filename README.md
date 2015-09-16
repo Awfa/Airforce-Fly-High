@@ -5,7 +5,7 @@ through purple dots on the board. Click any of the dots to play your move.
 
 ### Rules
   - Every player has 4 planes which start in the hanger
-  - To get a plane out of the hanger and onto the runway, a player must roll a 6
+  - To get a plane out of the hanger and onto the runway, a player must roll an even number
   - A player wins when all four of their planes reach home
   - Passing another plane with your plane in a single move sends the other plane back to their hanger
   - When one of your planes land on another of your planes, it becomes a formation (currently no in-game indicator)
