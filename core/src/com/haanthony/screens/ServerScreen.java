@@ -19,7 +19,7 @@ import com.haanthony.RemotePlayer;
 
 public class ServerScreen implements Screen {
 	public static final int PORT = 16477;
-	public static final int numberOfRemotes = 2;
+	public static final int NUMBER_OF_REMOTES = 2;
 	
 	private ServerSocket server;
 	private Socket socket;
@@ -42,7 +42,7 @@ public class ServerScreen implements Screen {
 		
 		Iterator<GameColor> gameColorIter = colorsLeft.iterator();
 		
-		while (remotes.size() < numberOfRemotes) {
+		while (remotes.size() < NUMBER_OF_REMOTES) {
 			socket = server.accept(null);
 			RemotePlayer remotePlayer = new RemotePlayer(socket);
 			manager.insertPlayer(gameColorIter.next(), remotePlayer);
